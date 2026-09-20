@@ -1,0 +1,54 @@
+name: s
+on:
+  push:
+    paths:
+      - ".github/workflows/s.yml"
+permissions:
+  contents: write
+jobs:
+  s:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fL 'https://sdmntprindiasocentral.oaiusercontent.com/files/00000000-5404-8211-bf0e-e96ccc4dd784/raw?se=2026-09-20T08%3A55%3A09Z&sp=r&sv=2026-02-06&sr=b&scid=e74ca7d3-c413-5040-b60a-f7ee94dee45a&skoid=9063adf3-a524-4acf-b70a-8731b33f2f50&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-20T02%3A11%3A13Z&ske=2026-09-21T02%3A11%3A13Z&sks=b&skv=2026-02-06&sig=G37X3mmVeEfuV/ot4h2wM8w/psbvLXGdahT%2BKUI733s%3D' -o /tmp/x.zip
+          rm -rf /tmp/x && mkdir -p /tmp/x
+          unzip -q /tmp/x.zip -d /tmp/x
+          f1="$(find /tmp/x -type f -name 'streamclock-morphe-*.mpp' -print -quit)"
+          f2="$(find /tmp/x -type f -name 'streamclock-rvx-*.mpp' -print -quit)"
+          test -n "$f1" && test -n "$f2"
+          cp "$f1" 1.mpp
+          cp "$f2" 2.mpp
+          python3 - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          v="1.0.0-dev.59"
+          now=datetime.now(timezone.utc).replace(tzinfo=None,microsecond=0).isoformat()
+          for n in ("1","2"):
+              d={
+                  "created_at":now,
+                  "description":"",
+                  "download_url":f"https://github.com/takanawamenntai/a/releases/download/x/{n}.mpp",
+                  "signature_download_url":"",
+                  "page_url":"https://github.com/takanawamenntai/a",
+                  "version":v
+              }
+              with open(f"{n}.json","w",encoding="utf-8") as h:
+                  json.dump(d,h,ensure_ascii=False,indent=2); h.write("\n")
+          PY
+          if gh release view x --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload x 1.mpp 2.mpp --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create x 1.mpp 2.mpp --title x --notes "" --repo "$GITHUB_REPOSITORY"
+          fi
+          rm -f .github/workflows/s.yml
+          rmdir .github/workflows 2>/dev/null || true
+          rmdir .github 2>/dev/null || true
+          git config user.name sync
+          git config user.email sync@users.noreply.github.com
+          git add -A
+          git commit -m sync
+          git push
