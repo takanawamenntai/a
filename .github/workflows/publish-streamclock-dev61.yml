@@ -1,0 +1,100 @@
+name: Publish approved StreamClock dev61 test bundles
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-streamclock-dev61.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: public-streamclock-dev61
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stage exact tested Morphe and RVX bundles
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 5 --retry-all-errors \
+            --connect-timeout 20 --max-time 180 --silent --show-error \
+            'https://sdmntprjapaneast.oaiusercontent.com/files/00000000-287c-8209-94c5-61e7090910db/raw?se=2026-10-10T05%3A54%3A37Z&sp=r&sv=2026-02-06&sr=b&scid=df1d4f16-17b2-5b9c-bb1e-84c138f4bce5&skoid=9063adf3-a524-4acf-b70a-8731b33f2f50&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-10T00%3A18%3A12Z&ske=2026-10-11T00%3A18%3A12Z&sks=b&skv=2026-02-06&sig=ceB5Zfzy7VpLEnW7V0sJRr4JzhfXQwwsgoo4x8AhQdI%3D' -o /tmp/streamclock-dev61.zip
+          unzip -t /tmp/streamclock-dev61.zip
+          unzip -jo /tmp/streamclock-dev61.zip \
+            'streamclock-morphe-1.0.0-dev.61.mpp' \
+            'streamclock-rvx-1.0.0-dev.61.mpp' -d /tmp
+          cp /tmp/streamclock-morphe-1.0.0-dev.61.mpp 1.mpp
+          cp /tmp/streamclock-rvx-1.0.0-dev.61.mpp 2.mpp
+          echo 'ab003b3eb5bfbcf79e34363112cd3dc957ac2b58088ce5991663682777c55025  1.mpp' | sha256sum -c -
+          echo '1222506913c22e336328c50a3a64b92d71add61a0c191c93286d2d32f9a28927  2.mpp' | sha256sum -c -
+          test "$(wc -c < 1.mpp)" -eq 897002
+          test "$(wc -c < 2.mpp)" -eq 879617
+
+      - name: Publish release assets before metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release upload x 1.mpp 2.mpp --clobber --repo "$GITHUB_REPOSITORY"
+          mkdir -p /tmp/streamclock-verify
+          gh release download x --repo "$GITHUB_REPOSITORY" \
+            --pattern '1.mpp' --pattern '2.mpp' --dir /tmp/streamclock-verify
+          echo 'ab003b3eb5bfbcf79e34363112cd3dc957ac2b58088ce5991663682777c55025  /tmp/streamclock-verify/1.mpp' | sha256sum -c -
+          echo '1222506913c22e336328c50a3a64b92d71add61a0c191c93286d2d32f9a28927  /tmp/streamclock-verify/2.mpp' | sha256sum -c -
+
+      - name: Commit both public source files and versioned manifests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          now = datetime.now(timezone.utc).replace(tzinfo=None, microsecond=0).isoformat()
+          for name in ('1', '2'):
+              data = {
+                  "created_at": now,
+                  "description": "StreamClock dev.61 試験版（Morphe/RVXの実機動作未検証）",
+                  "download_url": f"https://github.com/takanawamenntai/a/releases/download/x/{name}.mpp",
+                  "signature_download_url": "",
+                  "page_url": "https://github.com/takanawamenntai/a",
+                  "version": "1.0.0-dev.61",
+              }
+              with open(f"{name}.json", "w", encoding="utf-8") as out:
+                  json.dump(data, out, ensure_ascii=False, indent=2)
+                  out.write("\n")
+          PY
+          git config user.name streamclock-publisher
+          git config user.email sync@users.noreply.github.com
+          git add 1.mpp 2.mpp 1.json 2.json
+          git diff --cached --stat
+          if ! git diff --cached --quiet; then
+            git commit -m 'sync: publish Morphe and RVX dev.61 test bundles'
+            git push origin HEAD:main
+          fi
+
+      - name: Verify public manifests and root binary hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git show origin/main:1.mpp | sha256sum | grep -F 'ab003b3eb5bfbcf79e34363112cd3dc957ac2b58088ce5991663682777c55025'
+          git show origin/main:2.mpp | sha256sum | grep -F '1222506913c22e336328c50a3a64b92d71add61a0c191c93286d2d32f9a28927'
+          python3 - <<'PY'
+          import json
+          for file_name, suffix in [('1.json', '1.mpp'), ('2.json', '2.mpp')]:
+              with open(file_name, encoding='utf-8') as file:
+                  meta = json.load(file)
+              assert meta['version'] == '1.0.0-dev.61', meta
+              assert meta['download_url'].endswith('/' + suffix), meta
+              assert '+' not in meta['created_at'], meta
+          print('Public Morphe and RVX version and manifest checks passed')
+          PY
