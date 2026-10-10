@@ -1,0 +1,125 @@
+name: Publish verified StreamClock dev62 bundles
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-streamclock-dev62.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: streamclock-dev62-distribution
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve previously tested Morphe/RVX build
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 4 --retry-all-errors --connect-timeout 20 --max-time 120 --silent --show-error \
+            'https://sdmntpreastus2.oaiusercontent.com/files/00000000-ee18-81f6-b3b0-60f27ff4d63a/raw?se=2026-10-10T08%3A36%3A46Z&sp=r&sv=2026-02-06&sr=b&scid=560634bf-3bc1-569b-860d-e333671a2196&skoid=9063adf3-a524-4acf-b70a-8731b33f2f50&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-09T23%3A03%3A35Z&ske=2026-10-10T23%3A03%3A35Z&sks=b&skv=2026-02-06&sig=MXJ1Dj9LZACUA%2BF60dbbiZszjfk85O285feeHPZXgBk%3D' -o /tmp/tested-bundles.zip
+          echo 'c2959f3ca66656f2c3af7b5d2e6d495f7f44c89d33b52bef3e6721f6c1772ec9  /tmp/tested-bundles.zip' | sha256sum -c -
+          unzip -t /tmp/tested-bundles.zip
+          unzip -jo /tmp/tested-bundles.zip \
+            'streamclock-morphe-1.0.0-dev.60.mpp' \
+            'streamclock-rvx-1.0.0-dev.60.mpp' -d /tmp
+          echo '63ff157af95a507180c84297b371ca05ae76d6ea62d5c96d2121672d59b1ca9b  /tmp/streamclock-morphe-1.0.0-dev.60.mpp' | sha256sum -c -
+          echo '87af885eb8f4bae961665ab88a280ca4c11115f008286a18d3764097caffd5e6  /tmp/streamclock-rvx-1.0.0-dev.60.mpp' | sha256sum -c -
+
+      - name: Set bundle manifest to dev62 without modifying compiled code
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from zipfile import ZipFile
+          from pathlib import Path
+          from hashlib import sha256
+          expected = ('63ff157af95a507180c84297b371ca05ae76d6ea62d5c96d2121672d59b1ca9b',
+                      '87af885eb8f4bae961665ab88a280ca4c11115f008286a18d3764097caffd5e6')
+          for i, runtime in enumerate(('morphe', 'rvx'), start=1):
+              original = Path(f'/tmp/streamclock-{runtime}-1.0.0-dev.60.mpp')
+              assert sha256(original.read_bytes()).hexdigest() == expected[i-1]
+              target=Path(f'{i}.mpp')
+              with ZipFile(original) as inp, ZipFile(target,'w') as out:
+                  assert 'META-INF/MANIFEST.MF' in inp.namelist()
+                  for info in inp.infolist():
+                      data=inp.read(info.filename)
+                      if info.filename=='META-INF/MANIFEST.MF':
+                          assert data.count(b'Version: 1.0.0-dev.60')==1
+                          data=data.replace(b'Version: 1.0.0-dev.60',b'Version: 1.0.0-dev.62')
+                      out.writestr(info,data)
+              with ZipFile(original) as before,ZipFile(target) as after:
+                  assert before.namelist()==after.namelist()
+                  for name in before.namelist():
+                      if name!='META-INF/MANIFEST.MF':
+                          assert sha256(before.read(name)).digest()==sha256(after.read(name)).digest(), name
+                  assert b'Version: 1.0.0-dev.62' in after.read('META-INF/MANIFEST.MF')
+              print(runtime, 'dev62 manifest; byte-identical compiled payload; sha256',sha256(target.read_bytes()).hexdigest())
+          PY
+
+      - name: Update both release assets and verify downloads
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum 1.mpp 2.mpp > /tmp/public-hashes
+          gh release upload x 1.mpp 2.mpp --clobber --repo "$GITHUB_REPOSITORY"
+          mkdir -p /tmp/verify-release
+          gh release download x --repo "$GITHUB_REPOSITORY" \
+            --pattern '1.mpp' --pattern '2.mpp' --dir /tmp/verify-release
+          (cd /tmp/verify-release && sha256sum -c /tmp/public-hashes)
+
+      - name: Publish version manifests and root binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from datetime import datetime,timezone
+          now=datetime.now(timezone.utc).replace(tzinfo=None,microsecond=0).isoformat()
+          for n in ('1','2'):
+              manifest={
+                'created_at':now,
+                'description':'StreamClock dev.62 試験版：Morphe/RVXのシーク・一時停止と実況リプレイ同期改善（実機未検証）',
+                'download_url':f'https://github.com/takanawamenntai/a/releases/download/x/{n}.mpp',
+                'signature_download_url':'',
+                'page_url':'https://github.com/takanawamenntai/a',
+                'version':'1.0.0-dev.62'
+              }
+              with open(f'{n}.json','w',encoding='utf-8') as file:
+                  json.dump(manifest,file,ensure_ascii=False,indent=2)
+                  file.write('\n')
+          PY
+          git config user.name streamclock-publisher
+          git config user.email sync@users.noreply.github.com
+          git add 1.mpp 2.mpp 1.json 2.json
+          git diff --cached --stat
+          git diff --cached --quiet && exit 0
+          git commit -m 'sync: publish verified Morphe and RVX dev.62 test bundles'
+          git push origin HEAD:main
+
+      - name: Verify distribution metadata and git blobs
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git show origin/main:1.mpp | sha256sum | grep "$(awk 'NR==1{print $1}' /tmp/public-hashes)"
+          git show origin/main:2.mpp | sha256sum | grep "$(awk 'NR==2{print $1}' /tmp/public-hashes)"
+          python3 - <<'PY'
+          import json
+          for n in ('1','2'):
+              obj=json.load(open(f'{n}.json',encoding='utf-8'))
+              assert obj['version']=='1.0.0-dev.62'
+              assert obj['download_url'].endswith(f'/{n}.mpp')
+              assert '+' not in obj['created_at']
+          print('Verified dev62 distribution files, release assets and manifests')
+          PY
