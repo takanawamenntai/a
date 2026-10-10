@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-10-10T04:18:59",
-  "description": "",
+  "created_at": "2026-10-10T05:49:48",
+  "description": "StreamClock dev.61 試験版（Morphe/RVXの実機動作未検証）",
   "download_url": "https://github.com/takanawamenntai/a/releases/download/x/2.mpp",
   "signature_download_url": "",
   "page_url": "https://github.com/takanawamenntai/a",
-  "version": "1.0.0-dev.60"
+  "version": "1.0.0-dev.61"
 }
