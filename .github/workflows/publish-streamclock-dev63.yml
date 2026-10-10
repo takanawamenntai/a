@@ -1,0 +1,98 @@
+name: Publish verified StreamClock dev63
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-streamclock-dev63.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: streamclock-dev63-distribution
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Retrieve CI-verified dev63 bundles
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 4 --retry-all-errors --connect-timeout 20 --max-time 120 --silent --show-error 'https://sdmntprkoreacentral.oaiusercontent.com/files/00000000-851c-8206-a584-1cb486be1927/raw?se=2026-10-10T09%3A14%3A04Z&sp=r&sv=2026-02-06&sr=b&scid=4ba265e2-b0ba-502d-8ecc-01a2ea6474b2&skoid=9063adf3-a524-4acf-b70a-8731b33f2f50&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-10T00%3A17%3A53Z&ske=2026-10-11T00%3A17%3A53Z&sks=b&skv=2026-02-06&sig=TOEBUWPUj3SVcL9SFCKrntWeNnomwqTM5wnYQHUpVzw%3D' -o /tmp/tested-bundles.zip
+          echo '187f4e59ae3f9aaf3eeb7ff9ef6b79d582cd60e08ca4d990fd820753ad8d45e2  /tmp/tested-bundles.zip' | sha256sum -c -
+          unzip -t /tmp/tested-bundles.zip
+          unzip -jo /tmp/tested-bundles.zip 'streamclock-morphe-1.0.0-dev.63.mpp' 'streamclock-rvx-1.0.0-dev.63.mpp' -d /tmp
+          mv /tmp/streamclock-morphe-1.0.0-dev.63.mpp 1.mpp
+          mv /tmp/streamclock-rvx-1.0.0-dev.63.mpp 2.mpp
+          echo 'def3ddbe2a02fc2887e504f7ece30df4cc3de7c12aba37f92b6b07107cbba32e  1.mpp' | sha256sum -c -
+          echo '9bff127be9b35734b55f2a1845533ff2425660d9d38579aa81a4c03c5c14e8c9  2.mpp' | sha256sum -c -
+          python3 - <<'PY'
+          from zipfile import ZipFile
+          for p in ('1.mpp','2.mpp'):
+              with ZipFile(p) as z:
+                  assert b'Version: 1.0.0-dev.63' in z.read('META-INF/MANIFEST.MF')
+          print('Morphe and RVX manifest versions verified')
+          PY
+
+      - name: Publish release assets and verify downloaded files
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release upload x 1.mpp 2.mpp --clobber --repo "$GITHUB_REPOSITORY"
+          mkdir -p /tmp/downloaded
+          gh release download x --repo "$GITHUB_REPOSITORY" --pattern '1.mpp' --pattern '2.mpp' --dir /tmp/downloaded
+          echo 'def3ddbe2a02fc2887e504f7ece30df4cc3de7c12aba37f92b6b07107cbba32e  /tmp/downloaded/1.mpp' | sha256sum -c -
+          echo '9bff127be9b35734b55f2a1845533ff2425660d9d38579aa81a4c03c5c14e8c9  /tmp/downloaded/2.mpp' | sha256sum -c -
+
+      - name: Update app version feeds and root patch bundles
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from datetime import datetime,timezone
+          now=datetime.now(timezone.utc).replace(tzinfo=None,microsecond=0).isoformat()
+          for i in (1,2):
+              value={
+                'created_at':now,
+                'description':'StreamClock dev.63 試験版：送信時点の再生日時、停止・倍速連動、実況ボタンとPiP対応（フリーウィンドウは端末依存、実機未検証）',
+                'download_url':f'https://github.com/takanawamenntai/a/releases/download/x/{i}.mpp',
+                'signature_download_url':'',
+                'page_url':'https://github.com/takanawamenntai/a',
+                'version':'1.0.0-dev.63'
+              }
+              with open(f'{i}.json','w',encoding='utf-8') as out:
+                  json.dump(value,out,indent=2,ensure_ascii=False)
+                  out.write('\n')
+          PY
+          git config user.name streamclock-publisher
+          git config user.email sync@users.noreply.github.com
+          git add 1.mpp 2.mpp 1.json 2.json
+          git diff --cached --stat
+          git diff --cached --quiet && exit 0
+          git commit -m 'sync: distribute tested Morphe/RVX dev.63 and metadata'
+          git push origin HEAD:main
+
+      - name: Confirm SHA256 and feeds in default branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git show origin/main:1.mpp | sha256sum | grep def3ddbe2a02fc2887e504f7ece30df4cc3de7c12aba37f92b6b07107cbba32e
+          git show origin/main:2.mpp | sha256sum | grep 9bff127be9b35734b55f2a1845533ff2425660d9d38579aa81a4c03c5c14e8c9
+          python3 - <<'PY'
+          import json
+          for i in (1,2):
+              data=json.load(open(f'{i}.json',encoding='utf-8'))
+              assert data['version']=='1.0.0-dev.63'
+              assert data['download_url'].endswith(f'/{i}.mpp')
+          print('dev63 release assets and version feeds verified')
+          PY
