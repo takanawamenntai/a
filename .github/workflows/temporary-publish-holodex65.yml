@@ -1,0 +1,77 @@
+name: Publish dev65 Holodex Morphe RVX
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/temporary-publish-holodex65.yml']
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout own public repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Download verified compiled binary packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error --retry 3 --max-time 120 "https://sdmntprkoreacentral.oaiusercontent.com/files/00000000-8f78-8206-9ff0-619cfee6cdb3/raw?se=2026-10-11T22%3A23%3A49Z&sp=r&sv=2026-02-06&sr=b&scid=ed87f1ba-55b1-59ae-9811-8eeba0f4f1b3&skoid=9063adf3-a524-4acf-b70a-8731b33f2f50&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-11T22%3A17%3A53Z&ske=2026-10-12T22%3A17%3A53Z&sks=b&skv=2026-02-06&sig=ZchK%2BcJFNcXpPmBgkaNGjeXKDnaI4bT7CfG3qY93EyM%3D" -o /tmp/patches.zip
+          unzip -t /tmp/patches.zip
+          unzip -j /tmp/patches.zip 'streamclock-morphe-*.mpp' -d /tmp/
+          unzip -j /tmp/patches.zip 'streamclock-rvx-*.mpp' -d /tmp/
+          cp /tmp/streamclock-morphe-*.mpp /tmp/1.mpp
+          cp /tmp/streamclock-rvx-*.mpp /tmp/2.mpp
+          test -s /tmp/1.mpp
+          test -s /tmp/2.mpp
+      - name: Upload release x assets and verify bytes BEFORE changing feeds
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release upload x /tmp/1.mpp /tmp/2.mpp --clobber --repo takanawamenntai/a
+          mkdir -p /tmp/release_verify
+          gh release download x --pattern '1.mpp' --pattern '2.mpp' --dir /tmp/release_verify --repo takanawamenntai/a
+          cmp /tmp/1.mpp /tmp/release_verify/1.mpp
+          cmp /tmp/2.mpp /tmp/release_verify/2.mpp
+      - name: Commit matching public root binaries and feed metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from datetime import datetime,timezone
+          for name in ('1','2'):
+              old=json.load(open(name+'.json',encoding='utf-8'))
+              assert old['version'] in ('1.0.0-dev.64','1.0.0-dev.65'), old['version']
+              old['version']='1.0.0-dev.65'
+              old['created_at']=datetime.now(timezone.utc).replace(tzinfo=None,microsecond=0).isoformat()
+              old['description']='StreamClock dev.65: dev.64日時同期・DVR・実況IPC維持。YouTube動画画面左下にHolodex「配信一覧」追加。端末実機検証待ち。'
+              old['download_url']='https://github.com/takanawamenntai/a/releases/download/x/'+name+'.mpp'
+              with open(name+'.json','w',encoding='utf8') as f:
+                  json.dump(old,f,ensure_ascii=False,indent=2)
+                  f.write('\n')
+          PY
+          cp /tmp/1.mpp ./1.mpp
+          cp /tmp/2.mpp ./2.mpp
+          cmp /tmp/1.mpp ./1.mpp
+          cmp /tmp/2.mpp ./2.mpp
+          git rm .github/workflows/temporary-publish-holodex65.yml
+          git add 1.mpp 2.mpp 1.json 2.json
+          git config user.name "holodex-release-bot"
+          git config user.email "holodex-release-bot@users.noreply.github.com"
+          git commit -m "sync: StreamClock dev65 Holodex 配信一覧"
+          git push origin HEAD:main
+      - name: Check public source versions
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for n in 1 2; do
+            v="$(gh api repos/takanawamenntai/a/contents/$n.json --jq .content | base64 -d | python3 -c 'import json,sys; print(json.load(sys.stdin)["version"])')"
+            test "$v" = '1.0.0-dev.65'
+          done
+          echo "Verified dev65 public version metadata and release binary checks"
