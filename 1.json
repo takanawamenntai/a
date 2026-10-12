@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-10-11T22:19:02",
-  "description": "StreamClock dev.65: dev.64日時同期・DVR・実況IPC維持。YouTube動画画面左下にHolodex「配信一覧」追加。端末実機検証待ち。",
+  "created_at": "2026-10-12T02:56:44",
+  "description": "StreamClock dev.66: 配信一覧はPiP・背面で非表示、再生操作に合わせて一時表示。サムネイルとタイトルのタップで再生。時計・DVR・実況IPCは維持。実機検証待ち。",
   "download_url": "https://github.com/takanawamenntai/a/releases/download/x/1.mpp",
   "signature_download_url": "",
   "page_url": "https://github.com/takanawamenntai/a",
-  "version": "1.0.0-dev.65"
+  "version": "1.0.0-dev.66"
 }
