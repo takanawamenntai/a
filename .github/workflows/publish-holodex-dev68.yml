@@ -1,0 +1,84 @@
+name: Publish verified StreamClock dev68 Holodex player anchor
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-holodex-dev68.yml']
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+      - name: Stage verified binaries from own repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin refs/heads/stage/holodex-dev68:refs/remotes/origin/stage/holodex-dev68
+          git show origin/stage/holodex-dev68:1.mpp > /tmp/1.mpp
+          git show origin/stage/holodex-dev68:2.mpp > /tmp/2.mpp
+          echo 'c7819ad3abbf74830c07f73664810b8ea017bf70dafc40d01d6d6643313ea973  /tmp/1.mpp' | sha256sum -c -
+          echo '8b6fe317a3e0e6862c94b73649bb67222b866ce145d0f0dc08f089c5f4e2564e  /tmp/2.mpp' | sha256sum -c -
+          python3 - <<'PY'
+          import json
+          for n in ('1','2'):
+              with open(n+'.json',encoding='utf8') as file: v=json.load(file)['version']
+              assert v in ('1.0.0-dev.66','1.0.0-dev.68'), v
+          PY
+      - name: Replace BOTH release assets before changing feed metadata
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release upload x /tmp/1.mpp /tmp/2.mpp --clobber --repo "$GITHUB_REPOSITORY"
+          mkdir -p /tmp/release_verify
+          gh release download x --pattern '1.mpp' --pattern '2.mpp' --dir /tmp/release_verify --repo "$GITHUB_REPOSITORY"
+          cmp /tmp/1.mpp /tmp/release_verify/1.mpp
+          cmp /tmp/2.mpp /tmp/release_verify/2.mpp
+      - name: Update matching root binaries and version feeds
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp /tmp/1.mpp ./1.mpp
+          cp /tmp/2.mpp ./2.mpp
+          python3 - <<'PY'
+          import json
+          from datetime import datetime,timezone
+          date=datetime.now(timezone.utc).replace(tzinfo=None,microsecond=0).isoformat()
+          description=('StreamClock dev.68: 配信一覧の位置をYouTubeの動画枠左下に固定し、'
+             'おすすめ一覧下部への位置ずれを修正。通常時は常時表示、PiP・全画面では非表示。'
+             'Holodex一覧30秒更新・ライブ経過表示を維持。実機検証待ち。')
+          for n in ('1','2'):
+              with open(n+'.json',encoding='utf8') as file:v=json.load(file)
+              assert v['version'] in ('1.0.0-dev.66','1.0.0-dev.68'),v
+              v['version']='1.0.0-dev.68'
+              v['created_at']=date
+              v['description']=description
+              v['download_url']=f'https://github.com/takanawamenntai/a/releases/download/x/{n}.mpp'
+              with open(n+'.json','w',encoding='utf8') as file:
+                  json.dump(v,file,ensure_ascii=False,indent=2)
+                  file.write('\n')
+          PY
+          cmp /tmp/1.mpp ./1.mpp
+          cmp /tmp/2.mpp ./2.mpp
+          git rm .github/workflows/publish-holodex-dev68.yml
+          git add 1.mpp 2.mpp 1.json 2.json
+          git config user.name 'holodex-release-bot'
+          git config user.email 'holodex-release-bot@users.noreply.github.com'
+          git commit -m 'sync: StreamClock dev68 Holodex player-anchored button'
+          git push origin HEAD:main
+      - name: Verify published content and download links
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for n in 1 2; do
+            v="$(gh api "repos/$GITHUB_REPOSITORY/contents/$n.json" --jq '.content' | base64 -d | python3 -c 'import json,sys;print(json.load(sys.stdin)["version"])')"
+            test "$v" = '1.0.0-dev.68'
+          done
+          gh release view x --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[] | select(.name=="1.mpp" or .name=="2.mpp") | .name'
