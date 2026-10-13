@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-10-12T12:53:01",
-  "description": "StreamClock dev.68: 配信一覧の位置をYouTubeの動画枠左下に固定し、おすすめ一覧下部への位置ずれを修正。通常時は常時表示、PiP・全画面では非表示。Holodex一覧30秒更新・ライブ経過表示を維持。実機検証待ち。",
+  "created_at": "2026-10-13T22:03:42",
+  "description": "StreamClock dev.69: 時間指定なしのShortsを通常プレーヤーで開いた際、以前の視聴位置で終了付近に飛んだ場合だけ先頭へ戻す処理を追加。t/start付きリンク、通常動画、時計・Force DVR・Holodex・実況IPCを維持。実機検証待ち。",
   "download_url": "https://github.com/takanawamenntai/a/releases/download/x/2.mpp",
   "signature_download_url": "",
   "page_url": "https://github.com/takanawamenntai/a",
-  "version": "1.0.0-dev.68"
+  "version": "1.0.0-dev.69"
 }
