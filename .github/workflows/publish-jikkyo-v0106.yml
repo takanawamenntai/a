@@ -1,0 +1,52 @@
+name: Publish Android Jikkyo v0.10.6 Media Thumbnails APK
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-jikkyo-v0106.yml']
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Reconstruct fixed-signed APK from checksum-protected staging
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin refs/heads/stage/jikkyo-v0.10.6-apk:refs/remotes/origin/stage/jikkyo-v0.10.6-apk
+          : > /tmp/jikkyo-0106.b64
+          for i in $(seq -w 0 19); do
+            git show "origin/stage/jikkyo-v0.10.6-apk:transfer/apk0106/$i.b64" >> /tmp/jikkyo-0106.b64
+          done
+          base64 --decode /tmp/jikkyo-0106.b64 > /tmp/Android_Jikkyo_v0.10.6_Media_Thumbnails.apk
+          echo '6e2b16a7aadf6da17930c952bbd7a2af8cb6a025f1a611574a9b20b8ed3e40b9  /tmp/Android_Jikkyo_v0.10.6_Media_Thumbnails.apk' | sha256sum -c -
+          test "$(stat -c%s /tmp/Android_Jikkyo_v0.10.6_Media_Thumbnails.apk)" -eq 2833134
+      - name: Publish a separate PUBLIC Android-only GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag='jikkyo-v0.10.6-media-thumbs'
+          file='/tmp/Android_Jikkyo_v0.10.6_Media_Thumbnails.apk'
+          gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create "$tag" --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title 'Android実況リプレイ v0.10.6（ツリー内画像・MP4サムネイル）' \
+              --notes '固定署名付き上書き更新APK。ツリー内画像/GIF/MP4サムネイルと動画タップ再生、動画ごとの時刻補正、実況・DAT同期を含みます。APKのみを公開し、ソースコードや認証情報は公開していません。実機動作は未検証です。'
+          gh release upload "$tag" "$file" --repo "$GITHUB_REPOSITORY" --clobber
+          mkdir -p /tmp/apk-verify
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
+            --pattern 'Android_Jikkyo_v0.10.6_Media_Thumbnails.apk' --dir /tmp/apk-verify
+          cmp "$file" /tmp/apk-verify/Android_Jikkyo_v0.10.6_Media_Thumbnails.apk
+          sha256sum /tmp/apk-verify/Android_Jikkyo_v0.10.6_Media_Thumbnails.apk
+      - name: Delete public temporary transfer branch after verified release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git push origin --delete stage/jikkyo-v0.10.6-apk
