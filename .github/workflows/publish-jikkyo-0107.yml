@@ -1,0 +1,59 @@
+name: Publish Android Jikkyo v0.10.7 Media Gallery APK
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-jikkyo-0107.yml']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: public-jikkyo-v0.10.7
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Assemble public download from verified signed APK chunks
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin refs/heads/stage/jikkyo-v0.10.7:refs/remotes/origin/stage/jikkyo-v0.10.7
+          : > /tmp/jikkyo-v0107.b64
+          for n in 00 01 02 03; do
+            git show "origin/stage/jikkyo-v0.10.7:.github/transfers/jikkyo-v0.10.7/$n.b64" >> /tmp/jikkyo-v0107.b64
+          done
+          base64 --decode /tmp/jikkyo-v0107.b64 > /tmp/Android_Jikkyo_v0.10.7_Media_Gallery.apk
+          echo 'c92a71e765aafbd44785364ccf1b81f10a9514ffe02fdaafd7bce5101ccae0ad  /tmp/Android_Jikkyo_v0.10.7_Media_Gallery.apk' | sha256sum -c -
+          unzip -t /tmp/Android_Jikkyo_v0.10.7_Media_Gallery.apk >/dev/null
+          test -s /tmp/Android_Jikkyo_v0.10.7_Media_Gallery.apk
+          echo "Verified APK matches the private CI stable-signed build byte-for-byte"
+      - name: Publish to public GitHub Release (downloadable without private repo login)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag='jikkyo-v0.10.7-media-gallery'
+          gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create "$tag" --repo "$GITHUB_REPOSITORY" --prerelease \
+              --target "$GITHUB_SHA" --title 'Android実況リプレイ v0.10.7 - 画像ビューワー・ツリー修正' \
+              --notes '固定署名の上書き更新用APK。同じレスの画像・GIFだけ左右移動。返信ツリーの画像/GIF/MP4プレビューを表示時に読み込み。短いMP4でもサムネイル抽出を試行。既存のライブDAT、Drive連携、時刻補正を維持。'
+          gh release upload "$tag" /tmp/Android_Jikkyo_v0.10.7_Media_Gallery.apk \
+            --clobber --repo "$GITHUB_REPOSITORY"
+          mkdir -p /tmp/jikkyo-public-verify
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
+            --pattern 'Android_Jikkyo_v0.10.7_Media_Gallery.apk' --dir /tmp/jikkyo-public-verify
+          cmp /tmp/Android_Jikkyo_v0.10.7_Media_Gallery.apk \
+              /tmp/jikkyo-public-verify/Android_Jikkyo_v0.10.7_Media_Gallery.apk
+          echo 'c92a71e765aafbd44785364ccf1b81f10a9514ffe02fdaafd7bce5101ccae0ad  /tmp/jikkyo-public-verify/Android_Jikkyo_v0.10.7_Media_Gallery.apk' | sha256sum -c -
+          echo 'Public signed Android APK verified'
+      - name: Remove staging branch after successful publication
+        shell: bash
+        run: |
+          git push origin --delete stage/jikkyo-v0.10.7
