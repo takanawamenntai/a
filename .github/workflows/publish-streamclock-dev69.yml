@@ -1,0 +1,87 @@
+name: Publish StreamClock dev69 Shorts start protection
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-streamclock-dev69.yml']
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+      - name: Retrieve exact verified Morphe and RVX stage binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin refs/heads/stage/streamclock-dev69:refs/remotes/origin/stage/streamclock-dev69
+          git show origin/stage/streamclock-dev69:1.mpp > /tmp/1.mpp
+          git show origin/stage/streamclock-dev69:2.mpp > /tmp/2.mpp
+          echo '1afa216465aaffdba234b0968a1f1bc8783bd15c1822109c3b80ae267425aec1  /tmp/1.mpp' | sha256sum -c -
+          echo 'b0c57eeecd2b73938324e34a8551476c004a99e06f0aac46cfb3fbaa0f8a07d4  /tmp/2.mpp' | sha256sum -c -
+          python3 - <<'PY'
+          import json
+          for name in ('1','2'):
+              value=json.load(open(name+'.json',encoding='utf-8'))['version']
+              assert value in ('1.0.0-dev.68','1.0.0-dev.69'),value
+          PY
+      - name: Publish and verify both public release assets before feeds
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release upload x /tmp/1.mpp /tmp/2.mpp --clobber --repo "$GITHUB_REPOSITORY"
+          mkdir -p /tmp/streamclock_release_verify
+          gh release download x --pattern '1.mpp' --pattern '2.mpp' \
+            --dir /tmp/streamclock_release_verify --repo "$GITHUB_REPOSITORY"
+          cmp /tmp/1.mpp /tmp/streamclock_release_verify/1.mpp
+          cmp /tmp/2.mpp /tmp/streamclock_release_verify/2.mpp
+      - name: Match public root .mpp and update feed versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp /tmp/1.mpp ./1.mpp
+          cp /tmp/2.mpp ./2.mpp
+          python3 - <<'PY'
+          import json
+          from datetime import datetime,timezone
+          now=datetime.now(timezone.utc).replace(tzinfo=None,microsecond=0).isoformat()
+          description=('StreamClock dev.69: 時間指定なしのShortsを通常プレーヤーで開いた際、'
+              '以前の視聴位置で終了付近に飛んだ場合だけ先頭へ戻す処理を追加。'
+              't/start付きリンク、通常動画、時計・Force DVR・Holodex・実況IPCを維持。実機検証待ち。')
+          for name in ('1','2'):
+              path=name+'.json'
+              with open(path,encoding='utf-8') as file:
+                  metadata=json.load(file)
+              assert metadata['version'] in ('1.0.0-dev.68','1.0.0-dev.69')
+              metadata['version']='1.0.0-dev.69'
+              metadata['created_at']=now
+              metadata['description']=description
+              metadata['download_url']=f'https://github.com/takanawamenntai/a/releases/download/x/{name}.mpp'
+              with open(path,'w',encoding='utf-8') as file:
+                  json.dump(metadata,file,ensure_ascii=False,indent=2)
+                  file.write('\n')
+          PY
+          cmp /tmp/1.mpp ./1.mpp
+          cmp /tmp/2.mpp ./2.mpp
+          git rm .github/workflows/publish-streamclock-dev69.yml
+          git add 1.mpp 2.mpp 1.json 2.json
+          git config user.name 'streamclock-release-bot'
+          git config user.email 'streamclock-release-bot@users.noreply.github.com'
+          git commit -m 'sync: StreamClock dev69 Shorts restart fix'
+          git push origin HEAD:main
+      - name: Verify public feed metadata
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for n in 1 2; do
+            v="$(gh api "repos/$GITHUB_REPOSITORY/contents/$n.json" --jq .content | base64 -d | python3 -c 'import json,sys;print(json.load(sys.stdin)["version"])')"
+            test "$v" = '1.0.0-dev.69'
+          done
+          echo 'Public Morphe/RVX dev69 feeds and release binary checks passed'
