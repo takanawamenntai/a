@@ -1,0 +1,69 @@
+name: Publish Android Jikkyo v0.10.8 Signed Seconds Correction APK
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-jikkyo-0108.yml']
+permissions:
+  contents: write
+concurrency:
+  group: public-jikkyo-v0.10.8
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Reassemble public APK from validated signed data
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin refs/heads/stage/jikkyo-v0.10.8:refs/remotes/origin/stage/jikkyo-v0.10.8
+          prefix='origin/stage/jikkyo-v0.10.8:.github/transfers/jikkyo-v0.10.8/base64/'
+          count=$(git show "${prefix}count.txt")
+          test "$count" -ge 1 && test "$count" -le 100
+          : > /tmp/jikkyo-v0108.b64
+          for ((n=0;n<count;n++)); do
+            printf -v chunk '%02d' "$n"
+            git show "${prefix}${chunk}.b64" >> /tmp/jikkyo-v0108.b64
+          done
+          base64 --decode /tmp/jikkyo-v0108.b64 > /tmp/Android_Jikkyo_v0.10.8_Seconds_Offset.apk
+          test "$(git show "${prefix}sha256.txt")" = 'a76bfc3e0690f7497a8394f789a4da99f21959e350aa2a5c2decbab811d82de5'
+          echo 'a76bfc3e0690f7497a8394f789a4da99f21959e350aa2a5c2decbab811d82de5  /tmp/Android_Jikkyo_v0.10.8_Seconds_Offset.apk' | sha256sum -c -
+          unzip -t /tmp/Android_Jikkyo_v0.10.8_Seconds_Offset.apk >/dev/null
+          test -s /tmp/Android_Jikkyo_v0.10.8_Seconds_Offset.apk
+      - name: Publish APK on own public GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag='jikkyo-v0.10.8-seconds-offset'
+          file='/tmp/Android_Jikkyo_v0.10.8_Seconds_Offset.apk'
+          gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create "$tag" --repo "$GITHUB_REPOSITORY" --prerelease \
+              --target "$GITHUB_SHA" --title 'Android実況リプレイ v0.10.8 - 秒数補正' \
+              --notes '従来のHH:mm:ss指定に加え、+15秒・-20秒・+0.5秒など任意の符号付き秒数を直接指定可能。補正は動画切替・アプリ終了まで保持。固定署名、上書き更新用APK。'
+          gh release upload "$tag" "$file" --clobber --repo "$GITHUB_REPOSITORY"
+          mkdir -p /tmp/jikkyo-public-verify
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
+            --pattern 'Android_Jikkyo_v0.10.8_Seconds_Offset.apk' --dir /tmp/jikkyo-public-verify
+          cmp "$file" /tmp/jikkyo-public-verify/Android_Jikkyo_v0.10.8_Seconds_Offset.apk
+          echo 'a76bfc3e0690f7497a8394f789a4da99f21959e350aa2a5c2decbab811d82de5  /tmp/jikkyo-public-verify/Android_Jikkyo_v0.10.8_Seconds_Offset.apk' | sha256sum -c -
+      - name: Maintain no-login raw download copy
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p downloads
+          cp /tmp/Android_Jikkyo_v0.10.8_Seconds_Offset.apk downloads/
+          git add downloads/Android_Jikkyo_v0.10.8_Seconds_Offset.apk
+          git -c user.name='jikkyo-public-sync' -c user.email='sync@users.noreply.github.com' \
+            commit -m 'publish stable signed Jikkyo 0.10.8 APK as direct download'
+          git push origin HEAD:main
+      - name: Remove staging branch only after verified publication
+        shell: bash
+        run: |
+          git push origin --delete stage/jikkyo-v0.10.8
