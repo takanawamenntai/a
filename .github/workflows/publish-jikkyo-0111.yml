@@ -1,0 +1,68 @@
+name: Publish Android Jikkyo v0.10.11 Uncropped YouTube and Reliable Live DAT APK
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-jikkyo-0111.yml']
+permissions:
+  contents: write
+concurrency:
+  group: public-jikkyo-v0.10.11
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Reassemble public APK from validated signed data
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin refs/heads/stage/jikkyo-v0.10.11:refs/remotes/origin/stage/jikkyo-v0.10.11
+          prefix='origin/stage/jikkyo-v0.10.11:.github/transfers/jikkyo-v0.10.11/base64/'
+          count=$(git show "${prefix}count.txt")
+          test "$count" -ge 1 && test "$count" -le 100
+          : > /tmp/jikkyo-v0111.b64
+          for ((n=0;n<count;n++)); do
+            printf -v chunk '%02d' "$n"
+            git show "${prefix}${chunk}.b64" >> /tmp/jikkyo-v0111.b64
+          done
+          base64 --decode /tmp/jikkyo-v0111.b64 > /tmp/Android_Jikkyo_v0.10.11_Media_Live_Retry.apk
+          echo '96296850262bd67adc28e17fe5d7e0b59203d4a6fe81134b6c61174470ba7133  /tmp/Android_Jikkyo_v0.10.11_Media_Live_Retry.apk' | sha256sum -c -
+          unzip -t /tmp/Android_Jikkyo_v0.10.11_Media_Live_Retry.apk >/dev/null
+          test -s /tmp/Android_Jikkyo_v0.10.11_Media_Live_Retry.apk
+      - name: Publish APK on own public GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag='jikkyo-v0.10.11-media-live-retry'
+          file='/tmp/Android_Jikkyo_v0.10.11_Media_Live_Retry.apk'
+          gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create "$tag" --repo "$GITHUB_REPOSITORY" --prerelease \
+              --target "$GITHUB_SHA" --title 'Android実況リプレイ v0.10.11 - YouTubeサムネと配信終了DAT自動切替' \
+              --notes '画像全体表示・不要な黒帯無し、YouTube動画/配信/Shortsサムネイル。終了後2時間は掲示板DAT優先。保存DATがない・読み込み失敗なら掲示板へ、掲示板が取得できないときは保存DATへ一時退避して3分後再試行。＋－補正欄も維持。固定署名・上書き更新APK。'
+          gh release upload "$tag" "$file" --clobber --repo "$GITHUB_REPOSITORY"
+          mkdir -p /tmp/jikkyo-public-verify
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
+            --pattern 'Android_Jikkyo_v0.10.11_Media_Live_Retry.apk' --dir /tmp/jikkyo-public-verify
+          cmp "$file" /tmp/jikkyo-public-verify/Android_Jikkyo_v0.10.11_Media_Live_Retry.apk
+          echo '96296850262bd67adc28e17fe5d7e0b59203d4a6fe81134b6c61174470ba7133  /tmp/jikkyo-public-verify/Android_Jikkyo_v0.10.11_Media_Live_Retry.apk' | sha256sum -c -
+      - name: Maintain no-login raw download copy
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p downloads
+          cp /tmp/Android_Jikkyo_v0.10.11_Media_Live_Retry.apk downloads/
+          git add downloads/Android_Jikkyo_v0.10.11_Media_Live_Retry.apk
+          git -c user.name='jikkyo-public-sync' -c user.email='sync@users.noreply.github.com' \
+            commit -m 'publish stable signed Jikkyo 0.10.11 APK as direct download'
+          git push origin HEAD:main
+      - name: Remove staging branch only after verified publication
+        shell: bash
+        run: |
+          git push origin --delete stage/jikkyo-v0.10.11
