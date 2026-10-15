@@ -1,0 +1,68 @@
+name: Publish Android Jikkyo v0.10.13 Floating Instant Bottom Jump Button APK
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-jikkyo-0113.yml']
+permissions:
+  contents: write
+concurrency:
+  group: public-jikkyo-v0.10.13
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Reassemble public APK from validated signed data
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin refs/heads/stage/jikkyo-v0.10.13:refs/remotes/origin/stage/jikkyo-v0.10.13
+          prefix='origin/stage/jikkyo-v0.10.13:.github/transfers/jikkyo-v0.10.13/base64/'
+          count=$(git show "${prefix}count.txt")
+          test "$count" -ge 1 && test "$count" -le 100
+          : > /tmp/jikkyo-v0113.b64
+          for ((n=0;n<count;n++)); do
+            printf -v chunk '%02d' "$n"
+            git show "${prefix}${chunk}.b64" >> /tmp/jikkyo-v0113.b64
+          done
+          base64 --decode /tmp/jikkyo-v0113.b64 > /tmp/Android_Jikkyo_v0.10.13_Bottom_Jump.apk
+          echo '45a465877e357acf037b257859b868d6e5cb8ebd1e1664b813e351e9e1ee8558  /tmp/Android_Jikkyo_v0.10.13_Bottom_Jump.apk' | sha256sum -c -
+          unzip -t /tmp/Android_Jikkyo_v0.10.13_Bottom_Jump.apk >/dev/null
+          test -s /tmp/Android_Jikkyo_v0.10.13_Bottom_Jump.apk
+      - name: Publish APK on own public GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag='jikkyo-v0.10.13-bottom-jump'
+          file='/tmp/Android_Jikkyo_v0.10.13_Bottom_Jump.apk'
+          gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create "$tag" --repo "$GITHUB_REPOSITORY" --prerelease \
+              --target "$GITHUB_SHA" --title 'Android実況リプレイ v0.10.13 - 常設の最下部ジャンプボタン' \
+              --notes '右下に常設の▼最下部ボタン。アニメーション無しで即座に最新レスに移動し自動追従。新着レスを分割描画中でも下端へ追従。Holodex配信アーカイブ検索やDAT同期などの既存機能と固定署名を維持。'
+          gh release upload "$tag" "$file" --clobber --repo "$GITHUB_REPOSITORY"
+          mkdir -p /tmp/jikkyo-public-verify
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
+            --pattern 'Android_Jikkyo_v0.10.13_Bottom_Jump.apk' --dir /tmp/jikkyo-public-verify
+          cmp "$file" /tmp/jikkyo-public-verify/Android_Jikkyo_v0.10.13_Bottom_Jump.apk
+          echo '45a465877e357acf037b257859b868d6e5cb8ebd1e1664b813e351e9e1ee8558  /tmp/jikkyo-public-verify/Android_Jikkyo_v0.10.13_Bottom_Jump.apk' | sha256sum -c -
+      - name: Maintain no-login raw download copy
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p downloads
+          cp /tmp/Android_Jikkyo_v0.10.13_Bottom_Jump.apk downloads/
+          git add downloads/Android_Jikkyo_v0.10.13_Bottom_Jump.apk
+          git -c user.name='jikkyo-public-sync' -c user.email='sync@users.noreply.github.com' \
+            commit -m 'publish stable signed Jikkyo 0.10.13 APK as direct download'
+          git push origin HEAD:main
+      - name: Remove staging branch only after verified publication
+        shell: bash
+        run: |
+          git push origin --delete stage/jikkyo-v0.10.13
