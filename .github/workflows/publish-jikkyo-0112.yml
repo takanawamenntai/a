@@ -1,0 +1,68 @@
+name: Publish Android Jikkyo v0.10.12 Reply-Time Archive Finder and Smooth Scrolling APK
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-jikkyo-0112.yml']
+permissions:
+  contents: write
+concurrency:
+  group: public-jikkyo-v0.10.12
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Reassemble public APK from validated signed data
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin refs/heads/stage/jikkyo-v0.10.12:refs/remotes/origin/stage/jikkyo-v0.10.12
+          prefix='origin/stage/jikkyo-v0.10.12:.github/transfers/jikkyo-v0.10.12/base64/'
+          count=$(git show "${prefix}count.txt")
+          test "$count" -ge 1 && test "$count" -le 100
+          : > /tmp/jikkyo-v0112.b64
+          for ((n=0;n<count;n++)); do
+            printf -v chunk '%02d' "$n"
+            git show "${prefix}${chunk}.b64" >> /tmp/jikkyo-v0112.b64
+          done
+          base64 --decode /tmp/jikkyo-v0112.b64 > /tmp/Android_Jikkyo_v0.10.12_Archive_Smooth.apk
+          echo 'f261f4d1850a61b2863721c1c03a676a20a722b3b41c2b0b0087c837b50dd985  /tmp/Android_Jikkyo_v0.10.12_Archive_Smooth.apk' | sha256sum -c -
+          unzip -t /tmp/Android_Jikkyo_v0.10.12_Archive_Smooth.apk >/dev/null
+          test -s /tmp/Android_Jikkyo_v0.10.12_Archive_Smooth.apk
+      - name: Publish APK on own public GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag='jikkyo-v0.10.12-archive-smooth'
+          file='/tmp/Android_Jikkyo_v0.10.12_Archive_Smooth.apk'
+          gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create "$tag" --repo "$GITHUB_REPOSITORY" --prerelease \
+              --target "$GITHUB_SHA" --title 'Android実況リプレイ v0.10.12 - レス日時から配信検索・スクロール改善' \
+              --notes 'レス長押しでHolodexの配信アーカイブを投稿日時に一致するものから検索。サムネイルをタップすると動画の対応秒数から再生。設定でHolodex APIキーを入力。スクロール中のレス行生成をフレーム分割し不要なView並べ替えを低減。既存機能と固定署名を維持。'
+          gh release upload "$tag" "$file" --clobber --repo "$GITHUB_REPOSITORY"
+          mkdir -p /tmp/jikkyo-public-verify
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
+            --pattern 'Android_Jikkyo_v0.10.12_Archive_Smooth.apk' --dir /tmp/jikkyo-public-verify
+          cmp "$file" /tmp/jikkyo-public-verify/Android_Jikkyo_v0.10.12_Archive_Smooth.apk
+          echo 'f261f4d1850a61b2863721c1c03a676a20a722b3b41c2b0b0087c837b50dd985  /tmp/jikkyo-public-verify/Android_Jikkyo_v0.10.12_Archive_Smooth.apk' | sha256sum -c -
+      - name: Maintain no-login raw download copy
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p downloads
+          cp /tmp/Android_Jikkyo_v0.10.12_Archive_Smooth.apk downloads/
+          git add downloads/Android_Jikkyo_v0.10.12_Archive_Smooth.apk
+          git -c user.name='jikkyo-public-sync' -c user.email='sync@users.noreply.github.com' \
+            commit -m 'publish stable signed Jikkyo 0.10.12 APK as direct download'
+          git push origin HEAD:main
+      - name: Remove staging branch only after verified publication
+        shell: bash
+        run: |
+          git push origin --delete stage/jikkyo-v0.10.12
