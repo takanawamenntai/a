@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-10-13T22:03:42",
-  "description": "StreamClock dev.69: 時間指定なしのShortsを通常プレーヤーで開いた際、以前の視聴位置で終了付近に飛んだ場合だけ先頭へ戻す処理を追加。t/start付きリンク、通常動画、時計・Force DVR・Holodex・実況IPCを維持。実機検証待ち。",
+  "created_at": "2026-11-04T12:15:37",
+  "description": "StreamClock dev.70: 配信一覧を下部タブの上へ移動。一覧・ミニプレイヤーでは常時表示、通常再生画面では最初の2.5秒と操作メニュー表示中に表示。Official Morphe 2.1のShorts画質処理に対応。Patcher 2.1でビルド。実機検証待ち。",
   "download_url": "https://github.com/takanawamenntai/a/releases/download/x/1.mpp",
   "signature_download_url": "",
   "page_url": "https://github.com/takanawamenntai/a",
-  "version": "1.0.0-dev.69"
+  "version": "1.0.0-dev.70"
 }
