@@ -1,0 +1,75 @@
+name: Publish StreamClock dev71
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-streamclock-dev71.yml']
+permissions:
+  contents: write
+concurrency:
+  group: publish-streamclock-bundles
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify intended binaries
+        run: |
+          echo '660fc40c3b23399ddc79531ede5192a225dac783174d6667f06e20a261207bd9  1.mpp' | sha256sum -c -
+          echo 'f149a22b638c60b86458822647c2fee0b3c42bb17d2c043219306ec5ab2f2111  2.mpp' | sha256sum -c -
+      - name: Publish and verify downloads before metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release upload x 1.mpp 2.mpp --repo "$GITHUB_REPOSITORY" --clobber
+          mkdir -p /tmp/verify
+          gh release download x --repo "$GITHUB_REPOSITORY" --pattern '1.mpp' --pattern '2.mpp' --dir /tmp/verify
+          cmp 1.mpp /tmp/verify/1.mpp
+          cmp 2.mpp /tmp/verify/2.mpp
+          sha256sum /tmp/verify/*.mpp
+      - name: Advertise verified version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,re
+          from datetime import datetime,timezone
+          from pathlib import Path
+          version='1.0.0-dev.71'
+          for i in (1,2):
+              p=Path(f'{i}.json')
+              data=json.loads(p.read_text())
+              current=re.fullmatch(r'1\.0\.0-dev\.(\d+)',data['version'])
+              if current and int(current[1])>71:
+                  raise SystemExit('Refusing to roll back a newer version')
+              data.update(version=version,
+                  created_at=datetime.now(timezone.utc).replace(tzinfo=None,microsecond=0).isoformat(),
+                  download_url=f'https://github.com/takanawamenntai/a/releases/download/x/{i}.mpp',
+                  description='StreamClock dev.71: Shorts画質を動画ID単位で保持。Start Shorts from beginningを追加し時計・画質から独立。通常プレイヤーで開く時刻指定なしShortsに0秒指定。フローティング動画切替時の向き・レイアウト安定化と旧チャット閉じ処理の無効化。実機検証待ち。')
+              p.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
+          PY
+          git add 1.json 2.json
+          if ! git diff --cached --quiet; then
+            git -c user.name=streamclock-sync -c user.email=sync@users.noreply.github.com commit -m 'sync: advertise verified StreamClock dev71'
+            git push origin HEAD:main
+          fi
+          python3 - <<'PY'
+          import hashlib,json,time,urllib.request
+          from pathlib import Path
+          for i in (1,2):
+              base=f'https://raw.githubusercontent.com/takanawamenntai/a/main/{i}'
+              for attempt in range(6):
+                  with urllib.request.urlopen(base+'.json?verify='+str(time.time_ns())) as response:
+                      data=json.load(response)
+                  if data['version']=='1.0.0-dev.71':break
+                  time.sleep(5)
+              assert data['version']=='1.0.0-dev.71'
+              with urllib.request.urlopen(base+'.mpp?verify='+str(time.time_ns())) as response:
+                  remote=response.read()
+              assert remote==Path(f'{i}.mpp').read_bytes()
+              print(i,data['version'],len(remote),hashlib.sha256(remote).hexdigest())
+          PY
