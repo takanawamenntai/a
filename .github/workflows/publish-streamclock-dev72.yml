@@ -1,0 +1,94 @@
+name: Publish StreamClock dev72
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-streamclock-dev72.yml']
+permissions:
+  contents: write
+concurrency:
+  group: publish-streamclock-bundles
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify intended binaries
+        run: |
+          echo 'fdae3a68b17415833e707a3cd396d7edd3ab9bd114c76d265b391098ebeb85d0  1.mpp' | sha256sum -c -
+          echo '5d48a700d7d92843c7545e678f503b2139fbf375e5f50780fce72855c06a9d30  2.mpp' | sha256sum -c -
+      - name: Publish and verify downloads before metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release upload x 1.mpp 2.mpp --repo "$GITHUB_REPOSITORY" --clobber
+          mkdir -p /tmp/verify
+          gh release download x --repo "$GITHUB_REPOSITORY" --pattern '1.mpp' --pattern '2.mpp' --dir /tmp/verify
+          cmp 1.mpp /tmp/verify/1.mpp
+          cmp 2.mpp /tmp/verify/2.mpp
+          sha256sum /tmp/verify/*.mpp
+      - name: Advertise verified version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,re
+          from datetime import datetime,timezone
+          from pathlib import Path
+          version='1.0.0-dev.72'
+          for i in (1,2):
+              p=Path(f'{i}.json')
+              data=json.loads(p.read_text())
+              current=re.fullmatch(r'1\.0\.0-dev\.(\d+)',data['version'])
+              if current and int(current[1])>72:
+                  raise SystemExit('Refusing to roll back a newer version')
+              data.update(version=version,
+                  created_at=datetime.now(timezone.utc).replace(tzinfo=None,microsecond=0).isoformat(),
+                  download_url=f'https://github.com/takanawamenntai/a/releases/download/x/{i}.mpp',
+                  description=('StreamClock RVX/anddea dev.72: ' if i==2 else 'StreamClock Morphe dev.72: ')+' RVX/anddea v4.4.0-dev.5のActivity初期化へ対応。実配布anddea DEXの18呼び出し先とRVX専用6パッチを検証。Patcher 2.1.0対応。URVでは専用の2-urv.jsonフィードをCDN経由で登録。実機動作未検証。')
+              p.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
+              if i==2:
+                  Path('2-urv.json').write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
+          PY
+          git add 1.json 2.json 2-urv.json
+          if ! git diff --cached --quiet; then
+            git -c user.name=streamclock-sync -c user.email=sync@users.noreply.github.com commit -m 'sync: advertise verified StreamClock dev72'
+            git push origin HEAD:main
+          fi
+          python3 - <<'PY'
+          import hashlib,json,time,urllib.request
+          from pathlib import Path
+          for i in (1,2):
+              base=f'https://raw.githubusercontent.com/takanawamenntai/a/main/{i}'
+              for attempt in range(6):
+                  with urllib.request.urlopen(base+'.json?verify='+str(time.time_ns())) as response:
+                      data=json.load(response)
+                  if data['version']=='1.0.0-dev.72':break
+                  time.sleep(5)
+              assert data['version']=='1.0.0-dev.72'
+              with urllib.request.urlopen(base+'.mpp?verify='+str(time.time_ns())) as response:
+                  remote=response.read()
+              assert remote==Path(f'{i}.mpp').read_bytes()
+              print(i,data['version'],len(remote),hashlib.sha256(remote).hexdigest())
+          PY
+
+          python3 - <<'PY'
+          import json,time,urllib.request
+          source='https://cdn.jsdelivr.net/gh/takanawamenntai/a@main/2-urv.json'
+          for attempt in range(8):
+              try:
+                  with urllib.request.urlopen(source,timeout=20) as response:
+                      data=json.load(response)
+                  if data['version']=='1.0.0-dev.72' and data['download_url'].endswith('/2.mpp'):
+                      print('URV direct-manifest feed verified:',source,data['version'],data['download_url'])
+                      break
+              except Exception as error:
+                  print('Waiting for CDN feed:',type(error).__name__)
+              time.sleep(5)
+          else:
+              raise SystemExit('CDN feed did not serve the RVX manifest')
+          PY
