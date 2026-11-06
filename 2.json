@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-06T00:25:35",
-  "description": "StreamClock dev.71: Shorts画質を動画ID単位で保持。Start Shorts from beginningを追加し時計・画質から独立。通常プレイヤーで開く時刻指定なしShortsに0秒指定。フローティング動画切替時の向き・レイアウト安定化と旧チャット閉じ処理の無効化。実機検証待ち。",
+  "created_at": "2026-11-06T12:35:50",
+  "description": "StreamClock RVX/anddea dev.72:  RVX/anddea v4.4.0-dev.5のActivity初期化へ対応。実配布anddea DEXの18呼び出し先とRVX専用6パッチを検証。Patcher 2.1.0対応。URVでは専用の2-urv.jsonフィードをCDN経由で登録。実機動作未検証。",
   "download_url": "https://github.com/takanawamenntai/a/releases/download/x/2.mpp",
   "signature_download_url": "",
   "page_url": "https://github.com/takanawamenntai/a",
-  "version": "1.0.0-dev.71"
+  "version": "1.0.0-dev.72"
 }
