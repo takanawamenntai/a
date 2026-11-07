@@ -1,0 +1,86 @@
+name: Publish StreamClock dev73
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-streamclock-dev73.yml']
+permissions:
+  contents: write
+concurrency:
+  group: publish-streamclock-bundles
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify bundle before publishing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          echo '9b194871a5ffcc43c80c1d277ff77bc75b4050b00cd49db0dfaaaa355474057f  2.mpp' | sha256sum -c -
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          assert json.loads(Path('2.json').read_text())['version'] in ('1.0.0-dev.72','1.0.0-dev.73')
+          assert Path('2.json').read_bytes() == Path('2-urv.json').read_bytes()
+          PY
+          gh release download x --repo "$GITHUB_REPOSITORY" --pattern '1.mpp' --dir /tmp/morphe-before
+          cmp 1.mpp /tmp/morphe-before/1.mpp
+      - name: Publish RVX asset and confirm its bytes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release upload x 2.mpp --repo "$GITHUB_REPOSITORY" --clobber
+          gh release download x --repo "$GITHUB_REPOSITORY" --pattern '2.mpp' --pattern '1.mpp' --dir /tmp/release
+          cmp 2.mpp /tmp/release/2.mpp
+          cmp /tmp/morphe-before/1.mpp /tmp/release/1.mpp
+          sha256sum /tmp/release/*.mpp
+      - name: Advertise and verify RVX feeds
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+          data = json.loads(Path('2.json').read_text())
+          data.update(
+              version='1.0.0-dev.73',
+              created_at=datetime.now(timezone.utc).replace(tzinfo=None,microsecond=0).isoformat(),
+              download_url='https://github.com/takanawamenntai/a/releases/download/x/2.mpp',
+              description='StreamClock RVX/anddea dev.73: 動画IDフックの解決方法を修正。APKへの適用と端末上の再生は未検証。')
+          content = json.dumps(data, ensure_ascii=False, indent=2) + '\n'
+          for name in ('2.json', '2-urv.json'):
+              Path(name).write_text(content)
+          PY
+          git add 2.json 2-urv.json
+          if ! git diff --cached --quiet; then
+            git -c user.name=streamclock-sync -c user.email=sync@users.noreply.github.com commit -m 'sync: advertise verified RVX dev73'
+            git push origin HEAD:main
+          fi
+          curl -fsS --max-time 20 'https://purge.jsdelivr.net/gh/takanawamenntai/a@main/2-urv.json' || true
+          python3 - <<'PY'
+          import hashlib, json, time, urllib.request
+          from pathlib import Path
+          base = 'https://raw.githubusercontent.com/takanawamenntai/a/main/'
+          cdn = 'https://cdn.jsdelivr.net/gh/takanawamenntai/a@main/2-urv.json'
+          def read(url):
+              with urllib.request.urlopen(url, timeout=20) as response:
+                  return response.read()
+          for attempt in range(12):
+              try:
+                  assert all(read(base + name + '?verify=' + str(time.time_ns())) == Path(name).read_bytes()
+                             for name in ('1.mpp', '1.json', '2.mpp', '2.json', '2-urv.json'))
+                  assert json.loads(read(cdn)) == json.loads(Path('2-urv.json').read_bytes())
+                  break
+              except (AssertionError, OSError) as error:
+                  print('Waiting for public feeds:', type(error).__name__, flush=True)
+                  time.sleep(5)
+          else:
+              raise SystemExit('Public feed verification timed out')
+          for name in ('1.mpp', '2.mpp'):
+              raw = Path(name).read_bytes()
+              print(name, len(raw), hashlib.sha256(raw).hexdigest())
+          print('Verified RVX feed: 1.0.0-dev.73', cdn)
+          PY
