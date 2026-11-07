@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-07T06:41:13",
-  "description": "StreamClock RVX/anddea dev.73: 動画IDフックの解決方法を修正。APKへの適用と端末上の再生は未検証。",
+  "created_at": "2026-11-07T22:33:45",
+  "description": "StreamClock RVX/anddea dev.74: HolodexとForce DVRの起動時クラッシュ対策。端末での起動と各機能の動作は未検証。",
   "download_url": "https://github.com/takanawamenntai/a/releases/download/x/2.mpp",
   "signature_download_url": "",
   "page_url": "https://github.com/takanawamenntai/a",
-  "version": "1.0.0-dev.73"
+  "version": "1.0.0-dev.74"
 }
