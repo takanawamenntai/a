@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-07T22:43:31",
-  "description": "StreamClock RVX/anddea dev.75: 公開リリースへのリンクを修正。パッチの動作はdev.74と同じです。",
+  "created_at": "2026-11-07T23:34:46",
+  "description": "StreamClock RVX/anddea dev.76: ホームに配信一覧を表示する処理とシーク中の配信時刻表示を更新。端末での表示は未検証。",
   "download_url": "https://github.com/takanawamenntai/a/releases/download/x/2.mpp",
   "signature_download_url": "",
   "page_url": "https://github.com/takanawamenntai/a/releases/tag/x",
-  "version": "1.0.0-dev.75"
+  "version": "1.0.0-dev.76"
 }
