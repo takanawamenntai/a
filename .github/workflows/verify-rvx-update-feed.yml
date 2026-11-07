@@ -1,0 +1,23 @@
+name: Verify RVX update feed paths
+on:
+  push:
+    branches: [verify/rvx-update-feed]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compare direct and CDN manifest responses
+        run: |
+          set -euo pipefail
+          for url in \
+              'https://raw.githubusercontent.com/takanawamenntai/a/main/2-urv.json' \
+              'https://raw.github.com/takanawamenntai/a/main/2-urv.json' \
+              'https://cdn.jsdelivr.net/gh/takanawamenntai/a@main/2-urv.json' \
+              'https://takanawamenntai.github.io/a/2-urv.json'; do
+            printf '%s\n' "$url"
+            curl -sSL --max-time 25 -D /tmp/headers -o /tmp/feed -w '%{http_code} %{url_effective}\n' "$url" || continue
+            awk 'tolower($0) ~ /^(cache-control|age|location):/' /tmp/headers
+            jq -r '[.version, .download_url] | @tsv' /tmp/feed || true
+          done
