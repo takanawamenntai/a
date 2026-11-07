@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-07T22:33:45",
-  "description": "StreamClock RVX/anddea dev.74: HolodexとForce DVRの起動時クラッシュ対策。端末での起動と各機能の動作は未検証。",
+  "created_at": "2026-11-07T22:43:31",
+  "description": "StreamClock RVX/anddea dev.75: 公開リリースへのリンクを修正。パッチの動作はdev.74と同じです。",
   "download_url": "https://github.com/takanawamenntai/a/releases/download/x/2.mpp",
   "signature_download_url": "",
-  "page_url": "https://github.com/takanawamenntai/a",
-  "version": "1.0.0-dev.74"
+  "page_url": "https://github.com/takanawamenntai/a/releases/tag/x",
+  "version": "1.0.0-dev.75"
 }
