@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-06T12:35:50",
-  "description": "StreamClock Morphe dev.72:  RVX/anddea v4.4.0-dev.5のActivity初期化へ対応。実配布anddea DEXの18呼び出し先とRVX専用6パッチを検証。Patcher 2.1.0対応。URVでは専用の2-urv.jsonフィードをCDN経由で登録。実機動作未検証。",
+  "created_at": "2026-11-14T22:38:18",
+  "description": "StreamClock dev.79: ライブ・プレミア公開・通常動画を判別。終了済みプレミアは120秒補正、通常動画は秒単位の公開日時を使用。実機動作は未検証。",
   "download_url": "https://github.com/takanawamenntai/a/releases/download/x/1.mpp",
   "signature_download_url": "",
-  "page_url": "https://github.com/takanawamenntai/a",
-  "version": "1.0.0-dev.72"
+  "page_url": "https://github.com/takanawamenntai/a/releases/tag/x",
+  "version": "1.0.0-dev.79"
 }
