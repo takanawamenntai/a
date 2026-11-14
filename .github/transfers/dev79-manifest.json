@@ -1,0 +1,14 @@
+{
+  "1": {
+    "bundle": "morphe",
+    "size": 941875,
+    "sha256": "e59b17bf105d59754e4ca43f522487bdbb073b6ee39d37d29cc54a231a567c63",
+    "chunks": 7
+  },
+  "2": {
+    "bundle": "rvx",
+    "size": 925908,
+    "sha256": "7478a5133cd5a4f1b337dd471cd09560bc2480288d62d87347b181eb76dd2def",
+    "chunks": 7
+  }
+}
