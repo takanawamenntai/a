@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-19T02:43:44",
-  "description": "ChMate 0.8.10.191 dev 用。あぼーんから一致した登録済みNGワードを確認・編集。13タブ一括復元も収録。実機未確認。",
-  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/main/chmate-restore-tabs/1.1.5/4.mpp",
+  "created_at": "2026-11-19T03:00:03",
+  "description": "ChMate 0.8.10.191 dev 用。あぼーん理由表示の互換性修正と既存NG編集。タブ復元も収録。",
+  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/main/chmate-restore-tabs/1.1.6/4.mpp",
   "signature_download_url": "",
-  "page_url": "https://github.com/takanawamenntai/a/tree/main/chmate-restore-tabs/1.1.5",
-  "version": "1.1.5"
+  "page_url": "https://github.com/takanawamenntai/a/tree/main/chmate-restore-tabs/1.1.6",
+  "version": "1.1.6"
 }
