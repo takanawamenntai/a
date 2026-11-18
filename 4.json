@@ -1,0 +1,8 @@
+{
+  "created_at": "2026-11-19T02:10:57",
+  "description": "ChMate 0.8.10.191 dev 向けの13タブ一括復元パッチ。単独適用を確認済み。Haiagaruとの同時適用と実機表示は未検証。",
+  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/main/chmate-restore-tabs/1.1.0/4.mpp",
+  "signature_download_url": "",
+  "page_url": "https://github.com/takanawamenntai/a/tree/main/chmate-restore-tabs/1.1.0",
+  "version": "1.1.0"
+}
