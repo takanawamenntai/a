@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-11-19T03:00:03",
+  "created_at": "2026-11-18T18:00:03",
   "description": "ChMate 0.8.10.191 dev 用。あぼーん理由表示の互換性修正と既存NG編集。タブ復元も収録。",
-  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/main/chmate-restore-tabs/1.1.6/4.mpp",
+  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/55f4d34fffcdfb2b82e70a143cd8803ff15b2bf5/chmate-restore-tabs/1.1.6/4.mpp",
   "signature_download_url": "",
   "page_url": "https://github.com/takanawamenntai/a/tree/main/chmate-restore-tabs/1.1.6",
   "version": "1.1.6"
