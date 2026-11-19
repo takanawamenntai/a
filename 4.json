@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-19T16:16:55",
-  "description": "ChMate 0.8.10.191 dev 用。自動リロードに5秒を追加し、オートスクロールボタンに自動更新バッジを表示します。",
-  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/3b5834ce6d0327ea3fb45daeea53ad8ee4e81310/chmate-restore-tabs/1.3.1/4.mpp",
+  "created_at": "2026-11-19T16:25:04",
+  "description": "ChMate 0.8.10.191 dev 用。自動更新バッジの位置を修正。動画タップで操作を再表示し、再生終了時に閉じるかループを選択できます。",
+  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/d1c01c9c27051bd40886712c8a0b16c11acf8654/chmate-restore-tabs/1.3.2/4.mpp",
   "signature_download_url": "",
-  "page_url": "https://github.com/takanawamenntai/a/tree/main/chmate-restore-tabs/1.3.1",
-  "version": "1.3.1"
+  "page_url": "https://github.com/takanawamenntai/a/tree/main/chmate-restore-tabs/1.3.2",
+  "version": "1.3.2"
 }
