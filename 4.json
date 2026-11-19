@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-19T16:33:33",
-  "description": "ChMate 0.8.10.191 dev 用。画像タップ時にクラッシュする画像ビューアの分岐を修正。",
-  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/951b8d5a58eab54120aee65db3f16bb2a7f688aa/chmate-restore-tabs/1.3.4/4.mpp",
+  "created_at": "2026-11-19T16:39:10",
+  "description": "ChMate 0.8.10.191 dev 用。GIFを縦横比に合わせたコンパクトな枠で自動再生し、再生切替を右下に表示。",
+  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/7a85963b64b2a03a9bae8695e91576cfc4f03f49/chmate-restore-tabs/1.3.5/4.mpp",
   "signature_download_url": "",
-  "page_url": "https://github.com/takanawamenntai/a/tree/main/chmate-restore-tabs/1.3.4",
-  "version": "1.3.4"
+  "page_url": "https://github.com/takanawamenntai/a/tree/main/chmate-restore-tabs/1.3.5",
+  "version": "1.3.5"
 }
