@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-20T05:15:07",
-  "description": "ChMate 0.8.10.191 dev 用。JPNKNの週単位のNGワッチョイに正規表現を追加し、意味付き記号ボタンを備えた入力画面を搭載。",
-  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/5df637e7f5e4f05f1745b7aabf0f7da8ad1f42bc/chmate-restore-tabs/1.3.20/4.mpp",
+  "created_at": "2026-11-20T09:57:42",
+  "description": "ChMate 0.8.10.191 dev 用。YouTube小窓の操作を動画下に移動し、四隅のサイズ変更エリアを透明化。",
+  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/d31d3aa3036dbc9e27e85ee1134917d33edb5b30/chmate-restore-tabs/1.3.21/4.mpp",
   "signature_download_url": "",
-  "page_url": "https://github.com/takanawamenntai/a/tree/main/chmate-restore-tabs/1.3.20",
-  "version": "1.3.20"
+  "page_url": "https://github.com/takanawamenntai/a/tree/main/chmate-restore-tabs/1.3.21",
+  "version": "1.3.21"
 }
