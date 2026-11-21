@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-21T01:58:53",
-  "description": "ChMate 0.8.10.191 dev 用。レスの投稿時刻に配信中だったにじさんじの配信をChMateで表示し、該当時刻から再生。",
-  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/7abb354ec6e4429277d4dc515334941ef58c8daf/chmate-restore-tabs/1.3.25/4.mpp",
+  "created_at": "2026-11-21T02:22:20",
+  "description": "ChMate 0.8.10.191 dev 用。レス長押しメニューに当時の配信を表示し、透明あぼーんのNG名前・IDの表示名を修正。",
+  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/04a7a6e67806b2ad8b4140eeac5496b5be350016/chmate-restore-tabs/1.3.26/4.mpp",
   "signature_download_url": "",
-  "page_url": "https://github.com/takanawamenntai/a/tree/main/chmate-restore-tabs/1.3.25",
-  "version": "1.3.25"
+  "page_url": "https://github.com/takanawamenntai/a/tree/main/chmate-restore-tabs/1.3.26",
+  "version": "1.3.26"
 }
