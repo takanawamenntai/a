@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-21T02:34:00",
-  "description": "ChMate 0.8.10.191 dev 用。配信サムネイル、実験的なYouTubeライブDVR、既定アプリでのYouTubeリンク起動。",
-  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/049727ed929771b31a3e89dfbc574a4f0ea5419f/chmate-restore-tabs/1.3.27/4.mpp",
+  "created_at": "2026-11-21T02:39:53",
+  "description": "ChMate 0.8.10.191 dev 用。ID・ワッチョイをタップしたときのレス抽出で非表示NGも表示。",
+  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/82a0348520900e457cf6da920277de2aa19b34a7/chmate-restore-tabs/1.3.28/4.mpp",
   "signature_download_url": "",
-  "page_url": "https://github.com/takanawamenntai/a/tree/main/chmate-restore-tabs/1.3.27",
-  "version": "1.3.27"
+  "page_url": "https://github.com/takanawamenntai/a/tree/main/chmate-restore-tabs/1.3.28",
+  "version": "1.3.28"
 }
