@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-21T02:22:20",
-  "description": "ChMate 0.8.10.191 dev 用。レス長押しメニューに当時の配信を表示し、透明あぼーんのNG名前・IDの表示名を修正。",
-  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/04a7a6e67806b2ad8b4140eeac5496b5be350016/chmate-restore-tabs/1.3.26/4.mpp",
+  "created_at": "2026-11-21T02:34:00",
+  "description": "ChMate 0.8.10.191 dev 用。配信サムネイル、実験的なYouTubeライブDVR、既定アプリでのYouTubeリンク起動。",
+  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/049727ed929771b31a3e89dfbc574a4f0ea5419f/chmate-restore-tabs/1.3.27/4.mpp",
   "signature_download_url": "",
-  "page_url": "https://github.com/takanawamenntai/a/tree/main/chmate-restore-tabs/1.3.26",
-  "version": "1.3.26"
+  "page_url": "https://github.com/takanawamenntai/a/tree/main/chmate-restore-tabs/1.3.27",
+  "version": "1.3.27"
 }
