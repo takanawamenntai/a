@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-21T01:05:17",
-  "description": "ChMate 0.8.10.191 dev 用。GIFの左右スワイプで前後の画像へ移動し、閉じるを画像外の右下に配置。",
-  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/121f1fed196d47e37fa5a3364c19156697b4fce0/chmate-restore-tabs/1.3.24/4.mpp",
+  "created_at": "2026-11-21T01:58:53",
+  "description": "ChMate 0.8.10.191 dev 用。レスの投稿時刻に配信中だったにじさんじの配信をChMateで表示し、該当時刻から再生。",
+  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/7abb354ec6e4429277d4dc515334941ef58c8daf/chmate-restore-tabs/1.3.25/4.mpp",
   "signature_download_url": "",
-  "page_url": "https://github.com/takanawamenntai/a/tree/main/chmate-restore-tabs/1.3.24",
-  "version": "1.3.24"
+  "page_url": "https://github.com/takanawamenntai/a/tree/main/chmate-restore-tabs/1.3.25",
+  "version": "1.3.25"
 }
