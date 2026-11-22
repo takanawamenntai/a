@@ -1,0 +1,76 @@
+name: Publish StreamClock watch.5
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-streamclock-watch5.yml']
+permissions:
+  contents: write
+concurrency:
+  group: publish-streamclock-bundles
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify and publish paired bundles
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          manifest=json.loads(Path('.github/transfers/watch5-manifest.json').read_text())
+          for i,item in manifest.items():
+              raw=Path(i+'.mpp').read_bytes()
+              assert len(raw)==item['size']
+              assert hashlib.sha256(raw).hexdigest()==item['sha256']
+          PY
+          gh release upload x 1.mpp 2.mpp --repo "$GITHUB_REPOSITORY" --clobber
+          gh release download x --repo "$GITHUB_REPOSITORY" --pattern '1.mpp' --pattern '2.mpp' --dir /tmp/release
+          cmp 1.mpp /tmp/release/1.mpp
+          cmp 2.mpp /tmp/release/2.mpp
+      - name: Update and verify source metadata
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from datetime import datetime, timezone
+          for i in (1,2):
+              path=Path(str(i)+'.json')
+              data=json.loads(path.read_text())
+              data.update(version='1.0.0-dev.79-watch.5',
+                  created_at=datetime.now(timezone.utc).replace(tzinfo=None,microsecond=0).isoformat(),
+                  download_url=f'https://github.com/takanawamenntai/a/releases/download/x/{i}.mpp',
+                  page_url='https://github.com/takanawamenntai/a/releases/tag/x',
+                  description='視聴途中にサムネイルを表示し、過去履歴の動画・チャンネル情報を再取得。')
+              path.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
+          Path('2-urv.json').write_bytes(Path('2.json').read_bytes())
+          PY
+          git add 1.json 2.json 2-urv.json
+          git -c user.name=streamclock-sync -c user.email=sync@users.noreply.github.com commit -m 'sync: advertise verified paired watch.5'
+          git push origin HEAD:main
+          python3 - <<'PY'
+          import json,time,urllib.request,hashlib
+          from pathlib import Path
+          base='https://raw.githubusercontent.com/takanawamenntai/a/main/'
+          def read(url):
+              with urllib.request.urlopen(url,timeout=20) as response:
+                  return response.read()
+          for attempt in range(60):
+              try:
+                  for name in ('1.mpp','2.mpp','1.json','2.json','2-urv.json'):
+                      assert read(base+name+'?verify='+str(time.time_ns()))==Path(name).read_bytes()
+                  assert json.loads(read('https://raw.github.com/takanawamenntai/a/main/2-urv.json?verify='+str(time.time_ns())))['version']=='1.0.0-dev.79-watch.5'
+                  break
+              except (OSError,AssertionError):
+                  time.sleep(5)
+          else:
+              raise SystemExit('Public verification failed')
+          for name in ('1.mpp','2.mpp'):
+              raw=Path(name).read_bytes()
+              print(name,len(raw),hashlib.sha256(raw).hexdigest())
+          print('Both public feeds verified: 1.0.0-dev.79-watch.5')
+          PY
