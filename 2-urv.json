@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-22T17:07:17",
-  "description": "チャプターから直前の視聴履歴とスクロール位置に戻るよう修正し、視聴区間バーを再生バー側に移動。",
-  "download_url": "https://github.com/takanawamenntai/a/releases/download/x/streamclock-watch17-rvx.mpp",
+  "created_at": "2026-11-22T21:39:05",
+  "description": "独立パッチ「視聴区間を再生バーに反映」が YouTube 21.30.216 に対応。21.13.164 にも引き続き対応。",
+  "download_url": "https://github.com/takanawamenntai/a/releases/download/x/streamclock-watch18-rvx.mpp",
   "signature_download_url": "",
   "page_url": "https://github.com/takanawamenntai/a/releases/tag/x",
-  "version": "1.0.0-dev.79-watch.17"
+  "version": "1.0.0-dev.79-watch.18"
 }
