@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-22T14:08:48",
-  "description": "動画の全画面ボタンの上から横長フローティングの開始を要求。",
+  "created_at": "2026-11-22T14:15:23",
+  "description": "HyperOSのフローティング検出と横長化の再適用を修正。",
   "download_url": "https://github.com/takanawamenntai/a/releases/download/x/1.mpp",
   "signature_download_url": "",
   "page_url": "https://github.com/takanawamenntai/a/releases/tag/x",
-  "version": "1.0.0-dev.79-watch.10"
+  "version": "1.0.0-dev.79-watch.11"
 }
