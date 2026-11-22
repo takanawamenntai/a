@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-22T12:52:25",
-  "description": "Holodex 配信一覧は開くたび先頭から表示し、開いている間はタブごとのスクロール位置を保持。",
+  "created_at": "2026-11-22T13:12:09",
+  "description": "視聴途中にサムネイルを表示し、過去履歴の動画・チャンネル情報を再取得。",
   "download_url": "https://github.com/takanawamenntai/a/releases/download/x/2.mpp",
   "signature_download_url": "",
   "page_url": "https://github.com/takanawamenntai/a/releases/tag/x",
-  "version": "1.0.0-dev.79-watch.4"
+  "version": "1.0.0-dev.79-watch.5"
 }
