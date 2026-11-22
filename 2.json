@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-22T14:22:25",
-  "description": "再生バーに視聴区間を表示し、小窓は既存の全画面ボタンで向きを切り替え。",
+  "created_at": "2026-11-22T14:33:30",
+  "description": "視聴区間の帯を再生バーの下に移動し、全画面とPiPでは非表示。",
   "download_url": "https://github.com/takanawamenntai/a/releases/download/x/2.mpp",
   "signature_download_url": "",
   "page_url": "https://github.com/takanawamenntai/a/releases/tag/x",
-  "version": "1.0.0-dev.79-watch.12"
+  "version": "1.0.0-dev.79-watch.13"
 }
