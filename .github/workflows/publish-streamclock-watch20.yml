@@ -1,0 +1,78 @@
+name: Publish StreamClock watch.20
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-streamclock-watch20.yml']
+permissions:
+  contents: write
+concurrency:
+  group: publish-streamclock-bundles
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify and publish paired bundles
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          manifest=json.loads(Path('.github/transfers/watch20-manifest.json').read_text())
+          for i,item in manifest.items():
+              raw=Path(i+'.mpp').read_bytes()
+              assert len(raw)==item['size']
+              assert hashlib.sha256(raw).hexdigest()==item['sha256']
+          PY
+          cp 1.mpp streamclock-watch20-morphe.mpp
+          cp 2.mpp streamclock-watch20-rvx.mpp
+          gh release upload x streamclock-watch20-morphe.mpp streamclock-watch20-rvx.mpp --repo "$GITHUB_REPOSITORY"
+          gh release download x --repo "$GITHUB_REPOSITORY" --pattern 'streamclock-watch20-morphe.mpp' --pattern 'streamclock-watch20-rvx.mpp' --dir /tmp/release
+          cmp 1.mpp /tmp/release/streamclock-watch20-morphe.mpp
+          cmp 2.mpp /tmp/release/streamclock-watch20-rvx.mpp
+      - name: Update and verify source metadata
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from datetime import datetime, timezone
+          for i in (1,2):
+              path=Path(str(i)+'.json')
+              data=json.loads(path.read_text())
+              data.update(version='1.0.0-dev.79-watch.20',
+                  created_at=datetime.now(timezone.utc).replace(tzinfo=None,microsecond=0).isoformat(),
+                  download_url='https://github.com/takanawamenntai/a/releases/download/x/streamclock-watch20-' + ('morphe' if i==1 else 'rvx') + '.mpp',
+                  page_url='https://github.com/takanawamenntai/a/releases/tag/x',
+                  description='視聴区間パッチを再生バーの構造で検出する方式に変更。YouTube 21.13.164 と 21.30.216 で適用確認。')
+              path.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
+          Path('2-urv.json').write_bytes(Path('2.json').read_bytes())
+          PY
+          git add 1.json 2.json 2-urv.json
+          git -c user.name=streamclock-sync -c user.email=sync@users.noreply.github.com commit -m 'sync: advertise verified paired watch.20'
+          git push origin HEAD:main
+          python3 - <<'PY'
+          import json,time,urllib.request,hashlib
+          from pathlib import Path
+          base='https://raw.githubusercontent.com/takanawamenntai/a/main/'
+          def read(url):
+              with urllib.request.urlopen(url,timeout=20) as response:
+                  return response.read()
+          for attempt in range(60):
+              try:
+                  for name in ('1.mpp','2.mpp','1.json','2.json','2-urv.json'):
+                      assert read(base+name+'?verify='+str(time.time_ns()))==Path(name).read_bytes()
+                  assert json.loads(read('https://raw.github.com/takanawamenntai/a/main/2-urv.json?verify='+str(time.time_ns())))['version']=='1.0.0-dev.79-watch.20'
+                  break
+              except (OSError,AssertionError):
+                  time.sleep(5)
+          else:
+              raise SystemExit('Public verification failed')
+          for name in ('1.mpp','2.mpp'):
+              raw=Path(name).read_bytes()
+              print(name,len(raw),hashlib.sha256(raw).hexdigest())
+          print('Both public feeds verified: 1.0.0-dev.79-watch.20')
+          PY
