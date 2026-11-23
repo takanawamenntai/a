@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-23T02:48:31",
-  "description": "視聴データの Drive 自動記録を追加。利用には Apps Script の接続設定が必要です。",
-  "download_url": "https://github.com/takanawamenntai/a/releases/download/x/streamclock-watch21-morphe.mpp",
+  "created_at": "2026-11-23T04:23:34",
+  "description": "Morphe と RVX で同じ端末内フォルダを選ぶと、視聴履歴・再生位置・視聴区間を共有できます。",
+  "download_url": "https://github.com/takanawamenntai/a/releases/download/x/streamclock-watch22-morphe.mpp",
   "signature_download_url": "",
   "page_url": "https://github.com/takanawamenntai/a/releases/tag/x",
-  "version": "1.0.0-dev.79-watch.21"
+  "version": "1.0.0-dev.79-watch.22"
 }
