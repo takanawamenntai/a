@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-23T00:00:13",
-  "description": "視聴区間パッチを再生バーの構造で検出する方式に変更。YouTube 21.13.164 と 21.30.216 で適用確認。",
-  "download_url": "https://github.com/takanawamenntai/a/releases/download/x/streamclock-watch20-rvx.mpp",
+  "created_at": "2026-11-23T02:48:31",
+  "description": "視聴データの Drive 自動記録を追加。利用には Apps Script の接続設定が必要です。",
+  "download_url": "https://github.com/takanawamenntai/a/releases/download/x/streamclock-watch21-rvx.mpp",
   "signature_download_url": "",
   "page_url": "https://github.com/takanawamenntai/a/releases/tag/x",
-  "version": "1.0.0-dev.79-watch.20"
+  "version": "1.0.0-dev.79-watch.21"
 }
