@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-22T23:54:52",
-  "description": "バックグラウンドや PiP への切り替えで配信一覧を閉じる処理を修正。",
-  "download_url": "https://github.com/takanawamenntai/a/releases/download/x/streamclock-watch19-morphe.mpp",
+  "created_at": "2026-11-23T00:00:13",
+  "description": "視聴区間パッチを再生バーの構造で検出する方式に変更。YouTube 21.13.164 と 21.30.216 で適用確認。",
+  "download_url": "https://github.com/takanawamenntai/a/releases/download/x/streamclock-watch20-morphe.mpp",
   "signature_download_url": "",
   "page_url": "https://github.com/takanawamenntai/a/releases/tag/x",
-  "version": "1.0.0-dev.79-watch.19"
+  "version": "1.0.0-dev.79-watch.20"
 }
