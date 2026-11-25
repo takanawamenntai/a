@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-25T03:06:20",
-  "description": "ChMate 0.8.10.191 dev 用。XのGIF動画の直リンクに専用サムネイルを対応付け。",
-  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/3e96135c32fa15b3e154695b3e92ac2f5e4a81d3/chmate-restore-tabs/1.3.51/4.mpp",
+  "created_at": "2026-11-25T04:43:43",
+  "description": "ChMate 0.8.10.191 dev 用。MEGAバックアップを選んで復元するときもNG表示名・グループ・期限付きNGを復元。",
+  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/bd2e7a541010a50a50d90f94512005b2d00e21ea/chmate-restore-tabs/1.3.52/4.mpp",
   "signature_download_url": "",
-  "page_url": "https://github.com/takanawamenntai/a/tree/main/chmate-restore-tabs/1.3.51",
-  "version": "1.3.51"
+  "page_url": "https://github.com/takanawamenntai/a/tree/main/chmate-restore-tabs/1.3.52",
+  "version": "1.3.52"
 }
