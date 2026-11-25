@@ -1,0 +1,8 @@
+{
+  "created_at": "2026-11-25T22:25:03",
+  "description": "Morphe・YouTube 21.30.216 用の任意診断パッチ。アプリ内で再生リストの診断ログを表示・コピーできます。",
+  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/main/streamclock-morphe-playlist-diagnostics-in-app.mpp",
+  "signature_download_url": "",
+  "page_url": "https://github.com/takanawamenntai/a/blob/main/1-playlist-diagnostics.json",
+  "version": "1.0.0-dev.79-playlist-diagnostics.2"
+}
