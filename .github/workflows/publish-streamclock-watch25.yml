@@ -18,161 +18,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
-      - name: Build and verify both bundles
+      - name: Download the exact release files
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p jars .github/scripts
-          cat > .github/scripts/overlay-watch25.py <<'PY_OVERLAY'
-          import copy
-          import pathlib
-          import re
-          import subprocess
-          import sys
-          import tempfile
-          import zipfile
-
-          CLASS = "Ldev/streamclock/extension/HolodexTabAddon;"
-          ENTRY = "extensions/extension.mpe"
-
-          def replace_once(text, before, after):
-              if text.count(before) != 1:
-                  raise ValueError(f"Expected one instruction sequence: {before!r}")
-              return text.replace(before, after, 1)
-
-          def change_method(text, name, edit):
-              pattern = rf"(?m)^\.method [^\n]* {re.escape(name)}\([^\n]*\n[\s\S]*?^\.end method$"
-              match, = re.finditer(pattern, text)
-              return text[:match.start()] + edit(match.group()) + text[match.end():]
-
-          def edit_open(text):
-              anchor = f"    sget-object v0, {CLASS}->TAB_SCROLL:Ljava/util/Map;"
-              reset = f"""    const-string v0, "live"
-
-              sput-object v0, {CLASS}->tab:Ljava/lang/String;
-
-              const-string v0, ""
-
-              sput-object v0, {CLASS}->query:Ljava/lang/String;
-
-          """
-              text = replace_once(text, anchor, reset + anchor)
-              anchor = "    invoke-direct {v3, p0}, Landroid/widget/ScrollView;-><init>(Landroid/content/Context;)V"
-              focus = """
-              const/high16 v4, 0x20000
-
-              invoke-virtual {v3, v4}, Landroid/widget/ScrollView;->setDescendantFocusability(I)V
-
-              const/4 v4, 0x1
-
-              invoke-virtual {v3, v4}, Landroid/widget/ScrollView;->setFocusableInTouchMode(Z)V
-          """
-              text = replace_once(text, anchor, anchor + "\n" + focus)
-              anchor = "    invoke-virtual {v1, v3}, Landroid/widget/ScrollView;->addView(Landroid/view/View;)V"
-              return replace_once(text, anchor, anchor + "\n\n    invoke-virtual {v1}, Landroid/widget/ScrollView;->requestFocus()Z")
-
-          def edit_scroll(text):
-              track = f"""    .locals 2
-
-              sget-object v0, {CLASS}->scroll:Landroid/widget/ScrollView;
-
-              if-ne p0, v0, :load_thumbnails
-
-              sget-object v0, {CLASS}->tab:Ljava/lang/String;
-
-              sget-object v1, {CLASS}->renderedTab:Ljava/lang/String;
-
-              invoke-virtual {{v0, v1}}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
-
-              move-result v0
-
-              if-eqz v0, :load_thumbnails
-
-              sget-object v0, {CLASS}->TAB_SCROLL:Ljava/util/Map;
-
-              invoke-static {{p2}}, Ljava/lang/Integer;->valueOf(I)Ljava/lang/Integer;
-
-              move-result-object p2
-
-              invoke-interface {{v0, v1, p2}}, Ljava/util/Map;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
-
-              :load_thumbnails
-          """
-              return replace_once(text, "    .registers 5\n", track)
-
-          def run(jars, tool, *args):
-              subprocess.run(["java", "-cp", f"{jars}/*", f"org.jf.{tool}.Main", *map(str, args)], check=True)
-
-          def snapshot(root):
-              return {p.relative_to(root): p.read_bytes() for p in root.rglob("*.smali")}
-
-          def main(jars, source, output):
-              with tempfile.TemporaryDirectory() as temp, zipfile.ZipFile(source) as base:
-                  temp = pathlib.Path(temp)
-                  original, updated = temp / "original.dex", temp / "updated.dex"
-                  smali, verified = temp / "smali", temp / "verified"
-                  original.write_bytes(base.read(ENTRY))
-                  run(jars, "baksmali", "d", original, "-o", smali)
-                  path = smali / "dev/streamclock/extension/HolodexTabAddon.smali"
-                  text = change_method(path.read_text(), "open", edit_open)
-                  text = change_method(text, "lambda$open$22", edit_scroll)
-                  path.write_text(text)
-                  run(jars, "smali", "a", smali, "-o", updated)
-                  run(jars, "baksmali", "d", updated, "-o", verified)
-                  before, after = snapshot(smali), snapshot(verified)
-                  changed = {name for name in before.keys() | after.keys() if before.get(name) != after.get(name)}
-                  if changed - {path.relative_to(smali)}:
-                      raise ValueError(f"Unexpected extension changes: {changed}")
-                  manifest = base.read("META-INF/MANIFEST.MF")
-                  if manifest.count(b"Version: 1.0.0-dev.79-watch.24") != 1:
-                      raise ValueError("Unexpected input build")
-                  with zipfile.ZipFile(output, "w") as release:
-                      for entry in base.infolist():
-                          data = base.read(entry)
-                          if entry.filename == ENTRY:
-                              data = updated.read_bytes()
-                          if entry.filename == "META-INF/MANIFEST.MF":
-                              data = data.replace(b"Version: 1.0.0-dev.79-watch.24", b"Version: 1.0.0-dev.79-watch.25")
-                          release.writestr(copy.copy(entry), data)
-                  with zipfile.ZipFile(output) as release:
-                      assert release.testzip() is None
-                      assert set(base.namelist()) == set(release.namelist())
-                      for name in base.namelist():
-                          if name not in (ENTRY, "META-INF/MANIFEST.MF"):
-                              assert base.read(name) == release.read(name)
-                      assert any(name.endswith("/PlaylistAutoplayPatchKt.class") for name in release.namelist())
-
-          if __name__ == "__main__":
-              main(*sys.argv[1:])
-          PY_OVERLAY
-          mkdir -p jars
-          while read -r path; do
-            version=${path##*/}
-            group=${path%/*}
-            name=${group##*/}
-            curl -fsSL --retry 3 "https://repo.maven.apache.org/maven2/$path/$name-$version.jar" -o "jars/$name-$version.jar"
-          done <<'DEPS'
-          org/smali/baksmali/2.5.2
-          org/smali/smali/2.5.2
-          org/smali/dexlib2/2.5.2
-          org/smali/util/2.5.2
-          com/beust/jcommander/1.64
-          com/google/guava/guava/27.1-android
-          org/antlr/antlr/3.5.2
-          org/antlr/antlr-runtime/3.5.2
-          org/antlr/stringtemplate/3.2.1
-          antlr/antlr/2.7.7
-          DEPS
-          base=https://raw.githubusercontent.com/takanawamenntai/a/a9e90820190e10367d0227afce525fdfc432dc58
-          curl -fsSL --retry 3 "$base/1.mpp" -o morphe.mpp
-          curl -fsSL --retry 3 "$base/2.mpp" -o rvx.mpp
-          sha256sum --check <<'CHECKSUMS'
-          9e306f21f062fa8bd8327431bdf33f067f3c91f643d63fcafaa7c51f1e992bfd  morphe.mpp
-          ba12f631f21a2a96f142b3a79d5bd2265a13f649da720dbd0bafc0effd5a3ae3  rvx.mpp
-          CHECKSUMS
-          for variant in morphe rvx; do
-            python3 .github/scripts/overlay-watch25.py jars "$variant.mpp" "streamclock-watch25-$variant.mpp"
-          done
+          base=https://raw.githubusercontent.com/takanawamenntai/a/7a3ac79fce893c845d3eda984879519f0e9f91ef
+          curl -fsSL --retry 3 "$base/1.mpp" -o streamclock-watch25-morphe.mpp
+          curl -fsSL --retry 3 "$base/2.mpp" -o streamclock-watch25-rvx.mpp
       - name: Publish the release assets and update the existing feeds
         shell: bash
         run: |
@@ -181,9 +33,7 @@ jobs:
           7d405291bb98095b9408d8a208187f35a0e149c303d167ceae65128d8facbeb2  streamclock-watch25-morphe.mpp
           a229a09f6a5b606e0a03d3d18ec5026a3d42ee0f3d6bf21f1857c91ff0738c20  streamclock-watch25-rvx.mpp
           CHECKSUMS
-          if ! gh release download x --repo "$GITHUB_REPOSITORY" --pattern 'streamclock-watch25-*.mpp' --dir existing; then
-            gh release upload x --repo "$GITHUB_REPOSITORY" streamclock-watch25-morphe.mpp streamclock-watch25-rvx.mpp
-          fi
+          gh release upload x --clobber --repo "$GITHUB_REPOSITORY" streamclock-watch25-morphe.mpp streamclock-watch25-rvx.mpp
           gh release download x --repo "$GITHUB_REPOSITORY" --pattern 'streamclock-watch25-*.mpp' --dir verified
           cmp streamclock-watch25-morphe.mpp verified/streamclock-watch25-morphe.mpp
           cmp streamclock-watch25-rvx.mpp verified/streamclock-watch25-rvx.mpp
