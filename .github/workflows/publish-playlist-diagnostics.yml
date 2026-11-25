@@ -1,0 +1,40 @@
+name: Publish playlist diagnostics download
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-playlist-diagnostics.yml']
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify and publish the diagnostics release asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          asset=streamclock-morphe-playlist-diagnostics-in-app.mpp
+          echo "631f9945871650a44fee21cf877ad53e32b1b9dfa107c79e2f83f4f0be402817  $asset" | sha256sum -c
+          gh release upload x "$asset" --repo "$GITHUB_REPOSITORY"
+          gh release download x --pattern "$asset" --dir verified --repo "$GITHUB_REPOSITORY"
+          cmp "$asset" "verified/$asset"
+          git pull --ff-only origin main
+          python3 - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+          path = Path('1-playlist-diagnostics.json')
+          data = json.loads(path.read_text())
+          data.update(
+              created_at=datetime.now(timezone.utc).replace(tzinfo=None, microsecond=0).isoformat(),
+              download_url='https://github.com/takanawamenntai/a/releases/download/x/streamclock-morphe-playlist-diagnostics-in-app.mpp',
+              page_url='https://github.com/takanawamenntai/a/releases/tag/x',
+          )
+          path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n')
+          PY
+          git add 1-playlist-diagnostics.json
+          git -c user.name=streamclock-sync -c user.email=sync@users.noreply.github.com commit -m 'Serve Morphe playlist diagnostics from the public release'
+          git push origin HEAD:main
