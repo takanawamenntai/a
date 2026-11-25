@@ -16,8 +16,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          asset=streamclock-morphe-playlist-diagnostics-in-app-v4.mpp
-          echo "78e68e01a37f4ad359dbc28cae7ad24f3ac4208cdf3602de7c2bcbf768fef4fc  $asset" | sha256sum -c
+          asset=streamclock-morphe-playlist-diagnostics-in-app-v5.mpp
+          echo "4a0e91c8245e07aab84cc4932fd3cccb759395736c8fd604fdec427d0d3db3f5  $asset" | sha256sum -c
           gh release upload x "$asset" --repo "$GITHUB_REPOSITORY"
           gh release download x --pattern "$asset" --dir verified --repo "$GITHUB_REPOSITORY"
           cmp "$asset" "verified/$asset"
@@ -29,9 +29,9 @@ jobs:
           path = Path('1-playlist-diagnostics.json')
           data = json.loads(path.read_text())
           data.update(
-              version='1.0.0-dev.79-playlist-diagnostics.4',
+              version='1.0.0-dev.79-playlist-diagnostics.5',
               created_at=datetime.now(timezone.utc).replace(tzinfo=None, microsecond=0).isoformat(),
-              download_url='https://github.com/takanawamenntai/a/releases/download/x/streamclock-morphe-playlist-diagnostics-in-app-v4.mpp',
+              download_url='https://github.com/takanawamenntai/a/releases/download/x/streamclock-morphe-playlist-diagnostics-in-app-v5.mpp',
               page_url='https://github.com/takanawamenntai/a/releases/tag/x',
           )
           path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n')
