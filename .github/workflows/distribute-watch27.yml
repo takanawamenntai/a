@@ -1,0 +1,58 @@
+name: Distribute StreamClock watch.27
+on:
+  push:
+    branches: [distribution/watch27-clock]
+    paths: ['.github/workflows/distribute-watch27.yml']
+permissions:
+  contents: write
+jobs:
+  distribute:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify release bytes and publish the public feed
+        run: |
+          set -euo pipefail
+          sha256sum --check <<'SUMS'
+          07a1312e03269baa68f6c6d5d891b961eef014b35fb276f4f8c9ce96dd8bbd99  1.mpp
+          24c2d1c1dd8c60e0f20e7c7703ea3c9f7eb113f326613a87f2cc16b84de0d18b  2.mpp
+          SUMS
+          stage="$(mktemp -d)"
+          cp 1.mpp 2.mpp "$stage/"
+          git fetch origin main
+          git switch -c publish-watch27 origin/main
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          assert all(json.loads(Path(name + ".json").read_text())["version"] == "1.0.0-dev.79-watch.25"
+                     for name in ("1", "2", "2-urv"))
+          PY
+          gh release upload x "$stage/1.mpp" "$stage/2.mpp" --clobber --repo "$GITHUB_REPOSITORY"
+          gh release download x --repo "$GITHUB_REPOSITORY" --pattern '1.mpp' --pattern '2.mpp' --dir "$stage/readback"
+          for asset in 1.mpp 2.mpp; do
+            cmp "$stage/$asset" "$stage/readback/$asset"
+            cp "$stage/$asset" "$asset"
+          done
+          python3 - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+          for name, asset in (("1", "1"), ("2", "2"), ("2-urv", "2")):
+              path = Path(name + ".json")
+              data = json.loads(path.read_text())
+              data.update(version="1.0.0-dev.79-watch.27",
+                          created_at=datetime.now(timezone.utc).replace(tzinfo=None, microsecond=0).isoformat(),
+                          description="配信アーカイブの当時の時刻を復元。YouTubeで開始時刻が得られない場合は設定済みHolodex APIキーで補完。",
+                          download_url=f"https://github.com/takanawamenntai/a/releases/download/x/{asset}.mpp",
+                          signature_download_url="")
+              path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
+          PY
+          git add 1.mpp 2.mpp 1.json 2.json 2-urv.json
+          git -c user.name=streamclock-sync -c user.email=sync@users.noreply.github.com commit -m 'Publish StreamClock watch.27 archive-clock fix'
+          git push origin HEAD:main
+          git fetch origin main
+          for name in 1.mpp 2.mpp 1.json 2.json 2-urv.json; do
+            git show "origin/main:$name" | cmp "$name" -
+          done
