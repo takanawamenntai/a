@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-26T15:59:54",
-  "description": "配信アーカイブの当時の時刻を復元。YouTubeで開始時刻が得られない場合は設定済みHolodex APIキーで補完。",
+  "created_at": "2026-11-26T21:22:36",
+  "description": "実況ボタンを右下の操作列の上に移動。ライブ配信中は時計の下に、現在の再生位置までの配信経過時間を表示。",
   "download_url": "https://github.com/takanawamenntai/a/releases/download/x/2.mpp",
   "signature_download_url": "",
   "page_url": "https://github.com/takanawamenntai/a/releases/tag/x",
-  "version": "1.0.0-dev.79-watch.27"
+  "version": "1.0.0-dev.79-watch.29"
 }
