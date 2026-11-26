@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-25T20:45:52",
-  "description": "ChMate 0.8.10.191 dev用。タブの永続読み込みとMEGAのZIP再取得。",
-  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/bb7d3789fbbbdda1a02dc434a3f67bd892749d88/chmate-restore-tabs/1.3.55/4.mpp",
+  "created_at": "2026-11-26T04:49:30",
+  "description": "ChMate 0.8.10.191 dev／作者版 Haiagaru 1.45.0 用。MEGA処理ログの自動保存・ダウンロードを追加。",
+  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/f6e3f8339b4f3972befacb559751455d2475d499/chmate-restore-tabs/1.3.56/4.mpp",
   "signature_download_url": "",
-  "page_url": "https://github.com/takanawamenntai/a/tree/bb7d3789fbbbdda1a02dc434a3f67bd892749d88/chmate-restore-tabs/1.3.55",
-  "version": "1.3.55"
+  "page_url": "https://github.com/takanawamenntai/a/tree/f6e3f8339b4f3972befacb559751455d2475d499/chmate-restore-tabs/1.3.56",
+  "version": "1.3.56"
 }
