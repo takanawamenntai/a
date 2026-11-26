@@ -1,0 +1,41 @@
+name: Publish Morphe playlist playback
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-playlist-single-video.yml']
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish asset and source metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          asset=streamclock-morphe-playlist-single-video.mpp
+          echo "8291117992dfe860f113c17d9395760d4e317b3b34bc8ccc4da0ade1cd45dde1  $asset" | sha256sum -c
+          gh release upload x "$asset" --repo "$GITHUB_REPOSITORY"
+          gh release download x --pattern "$asset" --dir verified --repo "$GITHUB_REPOSITORY"
+          cmp "$asset" "verified/$asset"
+          git pull --ff-only origin main
+          python3 - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+          data = dict(
+              created_at=datetime.now(timezone.utc).replace(tzinfo=None, microsecond=0).isoformat(),
+              version='1.0.0-dev.79-playlist-single.1',
+              description='YouTube 21.30.216 用。公式 Playlist improvements を有効化。再生リストごとに連続再生を切り替えます。',
+              download_url='https://github.com/takanawamenntai/a/releases/download/x/streamclock-morphe-playlist-single-video.mpp',
+              signature_download_url='',
+              page_url='https://github.com/takanawamenntai/a/releases/tag/x',
+          )
+          Path('1-playlist-single-video.json').write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n')
+          PY
+          git add 1-playlist-single-video.json
+          git -c user.name=streamclock-sync -c user.email=sync@users.noreply.github.com commit -m 'Publish Morphe playlist playback source'
+          git push origin HEAD:main
