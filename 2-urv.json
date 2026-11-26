@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-26T04:52:30",
-  "description": "既存の watch.25 機能に加え、YouTube 21.30.216 用の再生リスト連続再生切り替えパッチを追加。",
-  "download_url": "https://github.com/takanawamenntai/a/releases/download/x/streamclock-watch26-rvx.mpp",
+  "created_at": "2026-11-25T21:29:06",
+  "description": "配信一覧を配信中から開き、タブごとにスクロール位置を保持。再生リストごとの既存設定も引き継ぎ。",
+  "download_url": "https://github.com/takanawamenntai/a/releases/download/x/streamclock-watch25-rvx.mpp",
   "signature_download_url": "",
   "page_url": "https://github.com/takanawamenntai/a/releases/tag/x",
-  "version": "1.0.0-dev.79-watch.26"
+  "version": "1.0.0-dev.79-watch.25"
 }
