@@ -1,0 +1,361 @@
+diff --git a/extensions/chmate/src/main/java/app/morphe/extension/chmate/HaiagaruMegaSync.java b/extensions/chmate/src/main/java/app/morphe/extension/chmate/HaiagaruMegaSync.java
+index 89bfdee..4411377 100644
+--- a/extensions/chmate/src/main/java/app/morphe/extension/chmate/HaiagaruMegaSync.java
++++ b/extensions/chmate/src/main/java/app/morphe/extension/chmate/HaiagaruMegaSync.java
+@@ -109,6 +109,7 @@ final class HaiagaruMegaSync {
+             private boolean checked;
+             @Override public void onActivityResumed(Activity activity) {
+                 foreground = activity;
++                ProcessingLog.initialize(activity);
+                 if (checked) return;
+                 checked = true;
+                 SharedPreferences prefs = options(activity);
+@@ -356,6 +357,7 @@ final class HaiagaruMegaSync {
+ 
+         }
+         if (megaEnabled) {
++            ProcessingLog.addControls(content, activity);
+             TextView note = new TextView(activity);
+             note.setText("自動同期はアプリを開いている間に確認します。復元後はChMateを再起動してください。");
+             note.setTextSize(13);
+@@ -417,23 +419,35 @@ final class HaiagaruMegaSync {
+             }
+             if (!approveChanges(context, snapshot, categories, false)) return "復元を保留しました";
+             requireForeground();
+-            HaiagaruBackupArchive.restore(context, backup, categories, false);
++            restoreSnapshot(context, backup, categories, false);
+             options.edit().putLong(LAST_REMOTE, createdAt).apply();
+             return "MEGAの最新バックアップを復元しました。ChMateを再起動してください";
+         }
+ 
+         if (!approveChanges(context, snapshot, categories, true)) return "同期を保留しました";
+         requireForeground();
+-        HaiagaruBackupArchive.restore(context, backup, categories, true);
++        restoreSnapshot(context, backup, categories, true);
+         String name = uploadSnapshot(context, categories);
+         options.edit().putLong(LAST_REMOTE, createdAt).apply();
+         return "双方向同期が完了しました。不足分を統合してMEGAへ保存しました: " + name;
+         }
+     }
+ 
++    private static void restoreSnapshot(Context context, HaiagaruBackupArchive.Backup backup,
++                                        int categories, boolean merge) throws Exception {
++        ProcessingLog.record(context, ProcessingLog.Event.RESTORE_START, null);
++        HaiagaruBackupArchive.restore(context, backup, categories, merge);
++        ProcessingLog.record(context, ProcessingLog.Event.RESTORE_FINISH, null);
++    }
++
+     private static String uploadSnapshot(Context context, int categories) throws Exception {
++        ProcessingLog.record(context, ProcessingLog.Event.BACKUP_UPLOAD, null);
+         java.io.File file = HaiagaruBackupArchive.capture(context, categories);
+-        try { return HaiagaruMegaClient.upload(context, file); }
++        try {
++            String name = HaiagaruMegaClient.upload(context, file);
++            ProcessingLog.record(context, ProcessingLog.Event.BACKUP_UPLOAD_FINISH, null);
++            return name;
++        }
+         finally { file.delete(); }
+     }
+ 
+@@ -502,6 +516,7 @@ final class HaiagaruMegaSync {
+             return;
+         }
+         SharedPreferences prefs = options(activity);
++        ProcessingLog.record(activity, preview ? ProcessingLog.Event.RESTORE_PREVIEW : ProcessingLog.Event.SYNC_START, null);
+         message(activity, preview ? "MEGAのバックアップを確認中" : "同期中");
+         BackupProgress notification = new BackupProgress(activity, "MEGAバックアップ・同期");
+         new Thread(() -> {
+@@ -526,6 +541,7 @@ final class HaiagaruMegaSync {
+                         result = "MEGAに初回バックアップを保存しました: " + name;
+                     }
+                     prefs.edit().putLong(LAST, System.currentTimeMillis()).apply();
++                    ProcessingLog.record(activity, ProcessingLog.Event.SYNC_FINISH, null);
+                     final String completed = result;
+                     notification.update("MEGAの処理が完了しました", true);
+                     activity.runOnUiThread(() -> message(activity, completed));
+@@ -704,7 +720,7 @@ final class HaiagaruMegaSync {
+                         try (HaiagaruBackupArchive.Backup owned = backup) {
+                         if (!approveChanges(activity, snapshot, restoreFlags, false)) return "復元を保留しました";
+                         requireForeground();
+-                        HaiagaruBackupArchive.restore(activity.getApplicationContext(),
++                        restoreSnapshot(activity.getApplicationContext(),
+                                 backup, restoreFlags, false);
+                         return "復元しました。ChMateを再起動してください";
+                         }
+@@ -821,6 +837,9 @@ final class HaiagaruMegaSync {
+     }
+ 
+     private static void showError(Activity activity, Exception error) {
++        ProcessingLog.record(activity, (error instanceof java.util.zip.ZipException
++                || error.getCause() instanceof java.util.zip.ZipException)
++                ? ProcessingLog.Event.ZIP_INVALID : ProcessingLog.Event.OPERATION_FAILED, error);
+         // Never print an exception containing session keys or snapshot contents.
+         String detail = error instanceof IOException ? error.getMessage()
+                 : error.getClass().getSimpleName();
+diff --git a/extensions/chmate/src/main/java/app/morphe/extension/chmate/ProcessingLog.java b/extensions/chmate/src/main/java/app/morphe/extension/chmate/ProcessingLog.java
+new file mode 100644
+index 0000000..d9cbeb5
+--- /dev/null
++++ b/extensions/chmate/src/main/java/app/morphe/extension/chmate/ProcessingLog.java
+@@ -0,0 +1,169 @@
++package app.morphe.extension.chmate;
++
++import android.app.Activity;
++import android.content.Context;
++import android.content.SharedPreferences;
++import android.widget.Button;
++import android.widget.CheckBox;
++import android.widget.LinearLayout;
++import android.widget.Toast;
++
++import java.io.File;
++import java.io.FileOutputStream;
++import java.nio.charset.StandardCharsets;
++import java.util.concurrent.Executors;
++import java.util.concurrent.ScheduledExecutorService;
++import java.util.concurrent.TimeUnit;
++
++/** Structured diagnostics with a bounded local journal and opt-in MEGA export. */
++final class ProcessingLog {
++    enum Event { STARTUP, SYNC_START, SYNC_FINISH, BACKUP_UPLOAD, BACKUP_UPLOAD_FINISH,
++        BACKUP_DOWNLOAD, BACKUP_DOWNLOAD_FINISH, RESTORE_PREVIEW, RESTORE_START, RESTORE_FINISH, ZIP_INVALID, OPERATION_FAILED }
++
++    private static final int LIMIT = 256 * 1024;
++    private static final String PREFS = "haiagaru.processing-log";
++    private static final String AUTOMATIC = "automatic";
++    private static final ScheduledExecutorService IO = Executors.newSingleThreadScheduledExecutor();
++    private static final java.util.concurrent.atomic.AtomicBoolean started =
++            new java.util.concurrent.atomic.AtomicBoolean();
++
++    private ProcessingLog() {}
++
++    static void initialize(Context context) {
++        if (!started.compareAndSet(false, true)) return;
++        Context app = context.getApplicationContext();
++        record(app, Event.STARTUP, null);
++        IO.scheduleWithFixedDelay(() -> upload(app), 1, 15, TimeUnit.MINUTES);
++    }
++
++    static void record(Context context, Event event, Throwable failure) {
++        Context app = context.getApplicationContext();
++        long timestamp = System.currentTimeMillis();
++        // Never store exception messages, stack traces, URLs, file paths or credentials.
++        String type = failure == null ? "" : " " + failure.getClass().getSimpleName();
++        IO.execute(() -> {
++            try {
++                File file = journal(app);
++                android.util.AtomicFile atomic = new android.util.AtomicFile(file);
++                byte[] line = (timestamp + " " + event + type + "\n").getBytes(StandardCharsets.UTF_8);
++                if (file.length() + line.length > LIMIT) {
++                    byte[] previous = file.length() <= LIMIT ? read(file) : new byte[0];
++                    int start = Math.max(0, previous.length - LIMIT / 2);
++                    if (start > 0) {
++                        while (start < previous.length && previous[start++] != '\n') { }
++                    }
++                    FileOutputStream output = atomic.startWrite();
++                    try {
++                        output.write(previous, start, previous.length - start);
++                        output.write(line);
++                        atomic.finishWrite(output);
++                    } catch (Exception error) {
++                        atomic.failWrite(output);
++                        throw error;
++                    }
++                } else {
++                    try (FileOutputStream output = new FileOutputStream(file, true)) {
++                        output.write(line);
++                    }
++                }
++            } catch (Exception error) {
++                android.util.Log.w("Haiagaru", "Unable to write processing log");
++            }
++        });
++    }
++
++    private static File journal(Context context) {
++        return new File(context.getFilesDir(), "chmate-processing.log");
++    }
++
++    private static byte[] read(File file) throws java.io.IOException {
++        try (java.io.InputStream in = new java.io.FileInputStream(file);
++             java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
++            byte[] buffer = new byte[8192];
++            int count;
++            while ((count = in.read(buffer)) != -1) {
++                if (out.size() + count > LIMIT) throw new java.io.IOException("Log exceeds size limit");
++                out.write(buffer, 0, count);
++            }
++            return out.toByteArray();
++        }
++    }
++
++    private static SharedPreferences prefs(Context context) {
++        return context.getSharedPreferences(PREFS, 0);
++    }
++
++    private static void upload(Context context) {
++        SharedPreferences settings = prefs(context);
++        if (!settings.getBoolean(AUTOMATIC, false) || !HaiagaruMegaSession.hasSession(context)) return;
++        File file = journal(context);
++        if (!file.isFile() || file.length() == 0) return;
++        try {
++            String digest = android.util.Base64.encodeToString(
++                    java.security.MessageDigest.getInstance("SHA-256").digest(read(file)), android.util.Base64.NO_WRAP);
++            if (digest.equals(settings.getString("uploaded", ""))) return;
++            HaiagaruMegaClient.uploadProcessingLog(context, file);
++            settings.edit().putString("uploaded", digest).apply();
++        } catch (Exception error) {
++            android.util.Log.w("Haiagaru", "MEGA processing log upload failed: " + error.getClass().getSimpleName());
++        }
++    }
++
++    static void addControls(LinearLayout layout, Activity activity) {
++        CheckBox automatic = new CheckBox(activity);
++        automatic.setText("処理ログをMEGAへ自動保存");
++        automatic.setChecked(prefs(activity).getBoolean(AUTOMATIC, false));
++        automatic.setOnCheckedChangeListener((button, checked) -> {
++            prefs(activity).edit().putBoolean(AUTOMATIC, checked).apply();
++            if (checked) IO.execute(() -> upload(activity.getApplicationContext()));
++        });
++        layout.addView(automatic);
++        Button download = new Button(activity);
++        download.setText("MEGAの処理ログをダウンロード");
++        download.setOnClickListener(view -> {
++            download.setEnabled(false);
++            IO.execute(() -> list(activity, download));
++        });
++        layout.addView(download);
++    }
++
++    private static void list(Activity activity, Button button) {
++        try {
++            HaiagaruMegaClient.MegaFile[] files = HaiagaruMegaClient.listProcessingLogs(activity);
++            String[] labels = new String[files.length];
++            for (int i = 0; i < labels.length; i++) labels[i] = files[i].name;
++            activity.runOnUiThread(() -> {
++                if (activity.isFinishing() || activity.isDestroyed()) return;
++                button.setEnabled(true);
++                if (labels.length == 0) {
++                    Toast.makeText(activity, "MEGAに処理ログがありません", Toast.LENGTH_SHORT).show();
++                    return;
++                }
++                new HaiagaruDialog.Builder(activity).setTitle("ダウンロードする処理ログ")
++                        .setItems(labels, (dialog, index) -> IO.execute(() -> download(activity, files[index])))
++                        .setNegativeButton("キャンセル", null).show();
++            });
++        } catch (Exception error) {
++            activity.runOnUiThread(() -> {
++                button.setEnabled(true);
++                Toast.makeText(activity, "MEGAのログ一覧を取得できませんでした", Toast.LENGTH_LONG).show();
++            });
++        }
++    }
++
++    private static void download(Activity activity, HaiagaruMegaClient.MegaFile selected) {
++        File temporary = null;
++        String result;
++        try {
++            temporary = HaiagaruMegaClient.downloadProcessingLog(activity, selected);
++            Haiagaru.writeDownloadLog(activity, selected.name, new String(read(temporary), StandardCharsets.UTF_8));
++            result = "処理ログをダウンロードに保存しました";
++        } catch (Exception error) {
++            result = "処理ログをダウンロードできませんでした";
++        } finally {
++            if (temporary != null) temporary.delete();
++        }
++        final String message = result;
++        activity.runOnUiThread(() -> Toast.makeText(activity, message, Toast.LENGTH_LONG).show());
++    }
++}
+diff --git a/extensions/chmate/src/main/kotlin/app/morphe/extension/chmate/HaiagaruMegaClient.kt b/extensions/chmate/src/main/kotlin/app/morphe/extension/chmate/HaiagaruMegaClient.kt
+index 111eb3f..2234bc4 100644
+--- a/extensions/chmate/src/main/kotlin/app/morphe/extension/chmate/HaiagaruMegaClient.kt
++++ b/extensions/chmate/src/main/kotlin/app/morphe/extension/chmate/HaiagaruMegaClient.kt
+@@ -116,6 +116,57 @@ internal object HaiagaruMegaClient {
+         }
+     }
+ 
++    private const val LOG_FOLDER = "Haiagaru-processing-logs"
++    private const val MAX_LOG_BYTES = 256L * 1024
++    private val logName = Regex("chmate-processing-[a-zA-Z0-9_-]+\\.log")
++
++    private fun logNode(node: Node) = node.isFile && node.size in 1..MAX_LOG_BYTES
++        && logName.matches(node.name)
++
++    @JvmStatic
++    fun uploadProcessingLog(context: Context, snapshot: File): Unit = runBlocking {
++        requireSupportedAndroid()
++        val length = snapshot.length()
++        if (!snapshot.isFile || length !in 1..MAX_LOG_BYTES) throw IOException("Invalid log size")
++        withSession(context) { mega ->
++            val folder = folder(mega, create = true, name = LOG_FOLDER) ?: throw IOException("Log folder unavailable")
++            val name = "chmate-processing-${System.currentTimeMillis()}-${UUID.randomUUID()}.log"
++            val uploaded = FileInputStream(snapshot).asSource().buffered().use { source ->
++                CancellationToken().use { token -> mega.uploadFile(folder, name, length, source, token) }
++            }
++            if (uploaded.size != length) throw IOException("Log upload size mismatch")
++        }
++    }
++
++    @JvmStatic
++    fun listProcessingLogs(context: Context): Array<MegaFile> = runBlocking {
++        requireSupportedAndroid()
++        withSession(context) { mega ->
++            val folder = folder(mega, create = false, name = LOG_FOLDER) ?: return@withSession emptyArray()
++            mega.getChildren(folder).filter(::logNode).sortedByDescending { it.timestamp.toEpochMilliseconds() }
++                .take(100).map(::describe).toTypedArray()
++        }
++    }
++
++    @JvmStatic
++    fun downloadProcessingLog(context: Context, selected: MegaFile): File = runBlocking {
++        requireSupportedAndroid()
++        withSession(context) { mega ->
++            val folder = folder(mega, create = false, name = LOG_FOLDER) ?: throw IOException("Log folder unavailable")
++            val node = mega.getChildren(folder).firstOrNull {
++                it.hash == selected.hash && it.name == selected.name && it.size == selected.size && logNode(it)
++            } ?: throw IOException("Log unavailable")
++            val output = HaiagaruBackupArchive.temporary(context)
++            try {
++                downloadTo(mega, node, output)
++                output
++            } catch (error: Throwable) {
++                output.delete()
++                throw error
++            }
++        }
++    }
++
+     private fun eligible(node: Node) = node.isFile && node.name.startsWith(PREFIX)
+         && (node.name.endsWith(".json") || node.name.endsWith(".zip")) && node.size > 0
+ 
+@@ -125,6 +176,7 @@ internal object HaiagaruMegaClient {
+     @JvmStatic
+     fun download(context: Context, file: MegaFile): File = runBlocking {
+         requireSupportedAndroid()
++        ProcessingLog.record(context, ProcessingLog.Event.BACKUP_DOWNLOAD, null)
+         withSession(context) { mega ->
+             val node = mega.getNodeByHash(file.hash)
+                 ?: throw IOException("MEGA上のバックアップが見つかりません")
+@@ -134,6 +186,7 @@ internal object HaiagaruMegaClient {
+             val output = HaiagaruBackupArchive.temporary(context)
+             try {
+                 downloadTo(mega, node, output)
++                ProcessingLog.record(context, ProcessingLog.Event.BACKUP_DOWNLOAD_FINISH, null)
+                 output
+             } catch (error: Throwable) {
+                 output.delete()
+@@ -163,10 +216,10 @@ internal object HaiagaruMegaClient {
+         return digest.digest()
+     }
+ 
+-    private suspend fun folder(mega: Mega, create: Boolean): Node? {
++    private suspend fun folder(mega: Mega, create: Boolean, name: String = FOLDER): Node? {
+         val root = mega.getFileSystem().root ?: throw IOException("MEGAのファイル一覧を取得できません")
+-        return mega.getChildren(root).firstOrNull { it.isFolder && it.name == FOLDER }
+-            ?: if (create) mega.createDir(FOLDER, root) else null
++        return mega.getChildren(root).firstOrNull { it.isFolder && it.name == name }
++            ?: if (create) mega.createDir(name, root) else null
+     }
+ 
+     private suspend fun <T> withSession(context: Context, action: suspend (Mega) -> T): T {

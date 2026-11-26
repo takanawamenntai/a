@@ -1,0 +1,69 @@
+Morphe NOTICE
+
+https://github.com/MorpheApp/morphe-patches
+
+=============
+
+GPLv3 Section 7b: Preservation of User Notices
+
+All derivative works (source code and binaries) must include this
+NOTICE text and provide it to the software user.
+
+Portions of this software are provided "AS IS" by the Morphe software project.
+Any express or implied warranties, including the implied warranties of
+merchantability and fitness for a particular purpose, are disclaimed.
+
+
+GPLv3 Section 7c: Prohibiting Misrepresentation of Origin
+
+You are prohibited from misrepresenting the origin of the Program,
+and modified versions of the Program must be identified and marked in
+reasonable ways as different from the original version so as not to cause
+confusion regarding their origin.
+
+
+GPLv3 Section 7e: Declining Grant of Trademark Rights
+
+This License does not grant any rights or permission under trademark law
+to use the name "Morphe" or any of the Program's trade names, trademarks,
+service marks, or logos.
+
+=============
+
+Programmable NG design notice
+
+The programmable NG feature is an independently restructured implementation
+inspired by the GPLv3 fork at:
+
+https://github.com/testuser0123-web/Haiagaru-Morphe
+https://github.com/testuser0123-web
+
+That fork and this project are distributed under GPLv3. Source-level changes
+in this project are identified in the public Git history. No prebuilt artifact
+from that fork is redistributed by this project.
+
+The JavaScript interpreter is Mozilla Rhino 1.8.0, distributed under the
+Mozilla Public License 2.0:
+
+https://github.com/mozilla/rhino
+
+Noto Color Emoji is copyright Google and distributed under the SIL Open Font
+License 1.1. The bundled font comes from googlefonts/noto-emoji commit
+e20cbc2bbec1926686be9f9bee7d1d2cfa1fea0e. The complete license is at
+patches/src/main/resources/chmate/emoji/OFL.txt.
+
+MonaLite is a reduced MonaFont-derived font for displaying Japanese ASCII art.
+Its embedded metadata credits the MonaFont contributors and describes the font
+as public domain. The MonaFont project permits modification and redistribution:
+https://monafont.sourceforge.net/index.html
+
+The optional ChMate 191 automatic image-NG fix bundles ABI-specific
+libtensorflowlite_jni.so files from ChMate 0.8.10.226 dev. TensorFlow Lite is
+copyright Google LLC and is distributed under the Apache License 2.0:
+https://www.apache.org/licenses/LICENSE-2.0
+
+jsoup HTML parser
+
+The independent site-format adapters use jsoup 1.21.2 (MIT License).
+Copyright (c) 2009-2025 Jonathan Hedley <https://jsoup.org/>.
+The full license is included at patches/src/main/resources/chmate/licenses/jsoup-LICENSE.

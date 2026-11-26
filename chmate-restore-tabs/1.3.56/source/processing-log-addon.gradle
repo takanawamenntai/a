@@ -1,0 +1,9 @@
+gradle.projectsEvaluated {
+    def project = gradle.rootProject.project(':patches')
+    def tool = project.configurations.create('processingLogTool')
+    tool.extendsFrom(project.configurations.getByName('runtimeClasspath'))
+    project.dependencies.add(tool.name, 'app.morphe:morphe-patcher:2.3.1-dev.1')
+    project.tasks.register('processingLogClasspath') {
+        doLast { new File(System.getenv('LOG_CLASSPATH')).text = tool.asPath }
+    }
+}

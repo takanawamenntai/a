@@ -1,0 +1,80 @@
+name: Build ChMate processing log
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/build-processing-log.yml
+      - patches/haiagaru-processing-log.patch
+permissions:
+  contents: write
+  packages: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: areteruhiro/Haiagaru-Morphe
+          ref: 030b7615364d0b1157fab6b0e416f5e8c4ac9e4e
+          path: upstream
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Apply log changes
+        run: |
+          git -C upstream apply --check ../patches/haiagaru-processing-log.patch
+          git -C upstream apply ../patches/haiagaru-processing-log.patch
+          sed -i 's/^networkTimeout=.*/networkTimeout=120000/; s/^retries=.*/retries=2/' upstream/gradle/wrapper/gradle-wrapper.properties
+      - name: Build verification bundle
+        id: build_bundle
+        working-directory: upstream
+        env:
+          GITHUB_TOKEN: ${{ secrets.MORPHE_PACKAGES_TOKEN || github.token }}
+        run: |
+          set -o pipefail
+          bash gradlew :patches:buildAndroid --no-daemon 2>&1 | tee "$RUNNER_TEMP/processing-log-build.txt"
+      - name: Save verification bundle for application testing
+        id: save_bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$GH_REPO" --jq .private)" = true
+          mapfile -d '' bundles < <(find upstream/patches/build/libs -maxdepth 1 -type f -name '*.mpp' -print0)
+          test "${#bundles[@]}" -eq 1
+          unzip -tq "${bundles[0]}"
+          tag="processing-log-ci-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          destination="validation/processing-log/$tag"
+          mkdir -p "$destination"
+          split -b 512K -d -a 3 "${bundles[0]}" "$destination/part-"
+          sha256sum "${bundles[0]}" | cut -d' ' -f1 > "$destination/sha256.txt"
+          git add "$destination"
+          git -c user.name=github-actions -c user.email=41898282+github-actions[bot]@users.noreply.github.com commit -m "Stage $tag for validation"
+          git pull --rebase origin main
+          git push origin HEAD:main
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+      - name: Record build result
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          BUILD_OUTCOME: ${{ steps.build_bundle.outcome }}
+          SAVE_OUTCOME: ${{ steps.save_bundle.outcome }}
+          RELEASE_TAG: ${{ steps.save_bundle.outputs.tag }}
+        run: |
+          jq -n --arg status "$BUILD_OUTCOME" --arg saved "$SAVE_OUTCOME" --arg release "$RELEASE_TAG" --arg run "$GITHUB_RUN_ID" '{status:$status,saved:$saved,release:$release,run:$run}' > "$RUNNER_TEMP/processing-status.json"
+          file=build-status/processing-log.json
+          sha=$(gh api "repos/$GH_REPO/contents/$file" --jq .sha 2>/dev/null || true)
+          content=$(base64 -w0 "$RUNNER_TEMP/processing-status.json")
+          if [ -n "$sha" ]; then
+            gh api --method PUT "repos/$GH_REPO/contents/$file" -f message='Record processing log build result' -f content="$content" -f sha="$sha" > /dev/null
+          else
+            gh api --method PUT "repos/$GH_REPO/contents/$file" -f message='Record processing log build result' -f content="$content" > /dev/null
+          fi

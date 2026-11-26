@@ -1,0 +1,50 @@
+{
+  "success": true,
+  "packageName": "jp.co.airfront.android.a2chMate",
+  "packageVersion": "0.8.10.191 dev",
+  "isMount": false,
+  "appliedPatches": [
+    "Allow five-second ChMate auto-refresh",
+    "Back up additional ChMate settings",
+    "Haiagaru",
+    "MEGAバックアップ・同期",
+    "Restore saved ChMate tabs",
+    "Save ChMate crash logs",
+    "Show ChMate abone reasons",
+    "処理ログ（MEGA）",
+    "Use X GIF thumbnails",
+    "Speed up Haiagaru momentum sorting",
+    "Smooth ChMate auto-scroll",
+    "Show thread response count in blank toolbar slots",
+    "Show NGWord-Wacchoi badge",
+    "Restore additional NG settings from MEGA",
+    "Limit automatic ChMate image retries",
+    "Hide ChMate media metadata",
+    "Continuous thread reload and MEGA ZIP retry",
+    "Change ChMate package name"
+  ],
+  "failedPatches": [],
+  "stepResults": [
+    {
+      "step": "PATCHING",
+      "success": true
+    },
+    {
+      "step": "REBUILDING",
+      "success": true
+    }
+  ],
+  "buildRun": 45757542168,
+  "bundleSha256": "8b9a81a92e235759a9ed8f34f05a7f7c8d8242106aba250ace9121fa13289522",
+  "officialHaiagaruSha256": "3b1367dfac61b9b92ffde8e89570df3a5617f588629402cc963849c909d0a242",
+  "inputApkSha256": "1075cd57970099d30478badd064a8a7b64bc53e6ec8029cf5f4e7c1d27e41ec4",
+  "unsignedApkSha256": "737993731897a57c898edfcfc1a23813023827e053a6dc7a93c8082a4c09e940",
+  "dexChecks": {
+    "logInitializeCalls": 1,
+    "logRecordCalls": 9,
+    "logControlsCalls": 1,
+    "zipRetrySites": 3,
+    "duplicateClasses": 0
+  },
+  "deviceAndLiveMegaTested": false
+}
