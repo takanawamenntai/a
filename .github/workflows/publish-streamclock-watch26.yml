@@ -1,0 +1,60 @@
+name: Publish StreamClock watch.26 distribution
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-streamclock-watch26.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: publish-streamclock-bundles
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Publish the release assets and update the existing feeds
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum --check <<'CHECKSUMS'
+          ddf8f7bad124c4d96f36461f7e2cf8e4b840dd701f559c957f877bc6eeb1c412  streamclock-watch26-morphe.mpp
+          0791da4eb9e47494e93e9d628bc5dd602ad824612748345ca5129440b5b1ec43  streamclock-watch26-rvx.mpp
+          CHECKSUMS
+          gh release upload x --clobber --repo "$GITHUB_REPOSITORY" streamclock-watch26-morphe.mpp streamclock-watch26-rvx.mpp
+          gh release download x --repo "$GITHUB_REPOSITORY" --pattern 'streamclock-watch26-*.mpp' --dir verified
+          cmp streamclock-watch26-morphe.mpp verified/streamclock-watch26-morphe.mpp
+          cmp streamclock-watch26-rvx.mpp verified/streamclock-watch26-rvx.mpp
+          git pull --ff-only origin main
+          python3 - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+          from shutil import copyfile
+          timestamp = datetime.now(timezone.utc).replace(tzinfo=None, microsecond=0).isoformat()
+          version = '1.0.0-dev.79-watch.26'
+          for index, variant in ((1, 'morphe'), (2, 'rvx')):
+              path = Path(f'{index}.json')
+              data = json.loads(path.read_text())
+              assert data['version'] in ('1.0.0-dev.79-watch.25', version), data['version']
+              if data['version'] != version:
+                  data.update(
+                      version=version,
+                      created_at=timestamp,
+                      description='既存の watch.25 機能に加え、YouTube 21.30.216 用の再生リスト連続再生切り替えパッチを追加。',
+                      download_url=f'https://github.com/takanawamenntai/a/releases/download/x/streamclock-watch26-{variant}.mpp',
+                  )
+                  path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n')
+              copyfile(f'streamclock-watch26-{variant}.mpp', f'{index}.mpp')
+          copyfile('2.json', '2-urv.json')
+          PY
+          git add 1.json 2.json 2-urv.json 1.mpp 2.mpp
+          if ! git diff --cached --quiet; then
+            git -c user.name=streamclock-sync -c user.email=sync@users.noreply.github.com commit -m 'sync: publish StreamClock watch.26 for Morphe and RVX'
+            git push origin HEAD:main
+          fi
