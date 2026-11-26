@@ -1,0 +1,23 @@
+name: Publish watch.26.1 loader repair
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-watch26-loader-repair.yml']
+permissions:
+  contents: write
+jobs:
+  assets:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify and upload both preview files
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum --check <<'CHECKSUMS'
+          74b340e07d01833a25b33c8b11dc7597006fb738dda1b9bc1862d42c8e7b12ab  streamclock-watch26.1-morphe.mpp
+          39f4308486be551fff90e9effc1e0636d13f4237ce1d10e719b604a48e89661f  streamclock-watch26.1-rvx.mpp
+          CHECKSUMS
+          gh release upload x --repo "$GITHUB_REPOSITORY" streamclock-watch26.1-morphe.mpp streamclock-watch26.1-rvx.mpp
