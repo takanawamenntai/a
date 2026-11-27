@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-27T07:48:01",
-  "description": "ChMate 0.8.10.191 dev用。ギャラリーをタブで表示し、元レスへの移動と未取得メディアの順次読み込みを追加。",
-  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/c4c3c272ea924eb756b6a4651ea5a214dbfe6968/chmate-restore-tabs/1.3.75/4.mpp",
+  "created_at": "2026-11-27T12:08:29",
+  "description": "ChMate 0.8.10.191 dev用。ギャラリーの全体表示とキャッシュ優先、スレ本文の動画サムネイルの再生操作を改善。",
+  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/b74834eb7b841252b81497e8b694c8415ece9803/chmate-restore-tabs/1.3.76/4.mpp",
   "signature_download_url": "",
-  "page_url": "https://github.com/takanawamenntai/a/tree/c4c3c272ea924eb756b6a4651ea5a214dbfe6968/chmate-restore-tabs/1.3.75",
-  "version": "1.3.75"
+  "page_url": "https://github.com/takanawamenntai/a/tree/b74834eb7b841252b81497e8b694c8415ece9803/chmate-restore-tabs/1.3.76",
+  "version": "1.3.76"
 }
