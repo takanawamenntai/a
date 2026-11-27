@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-27T02:13:11",
-  "description": "ChMate 0.8.10.191 dev用。スレタブメニューにアルバム（メディア一覧）を追加。",
-  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/204eacf571ce826c1c02b56137aba061eabfe5c5/chmate-restore-tabs/1.3.68/4.mpp",
+  "created_at": "2026-11-27T02:32:04",
+  "description": "ChMate 0.8.10.191 dev用。タブメニューのアルバムと永続読み込みの操作経路を修正し、時計表示を追加。",
+  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/146bcf2bc0b99af73539688afd31df0c8fe914a7/chmate-restore-tabs/1.3.69/4.mpp",
   "signature_download_url": "",
-  "page_url": "https://github.com/takanawamenntai/a/tree/204eacf571ce826c1c02b56137aba061eabfe5c5/chmate-restore-tabs/1.3.68",
-  "version": "1.3.68"
+  "page_url": "https://github.com/takanawamenntai/a/tree/146bcf2bc0b99af73539688afd31df0c8fe914a7/chmate-restore-tabs/1.3.69",
+  "version": "1.3.69"
 }
