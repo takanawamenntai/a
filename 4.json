@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-26T22:37:30",
-  "description": "ChMate 0.8.10.191 dev／Haiagaru 1.55.0用。保存レスのスレ表示と長押しから元のレスを開く操作を追加。",
-  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/53b3011b06cb1bbff725526dbb5a097cc8f50074/chmate-restore-tabs/1.3.63/4.mpp",
+  "created_at": "2026-11-27T01:38:24",
+  "description": "ChMate 0.8.10.191 dev／Haiagaru 1.55.0用。内蔵プレーヤーで取得済みの動画キャッシュを優先再生。",
+  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/eafa3b2970ac2251aac2b9387643dced1f5670b6/chmate-restore-tabs/1.3.64/4.mpp",
   "signature_download_url": "",
-  "page_url": "https://github.com/takanawamenntai/a/tree/53b3011b06cb1bbff725526dbb5a097cc8f50074/chmate-restore-tabs/1.3.63",
-  "version": "1.3.63"
+  "page_url": "https://github.com/takanawamenntai/a/tree/eafa3b2970ac2251aac2b9387643dced1f5670b6/chmate-restore-tabs/1.3.64",
+  "version": "1.3.64"
 }
