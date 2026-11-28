@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-27T22:38:11",
-  "description": "ChMate 0.8.10.191 devとHaiagaru 1.56.1用。処理ログ（MEGA）と保存レス表示の対応版。",
-  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/2603451befe03c6e5b9802f516fdf64ef1cd5ac7/chmate-restore-tabs/1.3.86/4.mpp",
+  "created_at": "2026-11-28T00:44:37",
+  "description": "ChMate 0.8.10.191 devとHaiagaru 1.56.1用。ギャラリーの長押しメニュー、200件ずつのページ表示、動画サムネイルの更新。",
+  "download_url": "https://raw.githubusercontent.com/takanawamenntai/a/3458161a348eaeaacb181b1f0e69b38f267211a2/chmate-restore-tabs/1.3.87/4.mpp",
   "signature_download_url": "",
-  "page_url": "https://github.com/takanawamenntai/a/tree/2603451befe03c6e5b9802f516fdf64ef1cd5ac7/chmate-restore-tabs/1.3.86",
-  "version": "1.3.86"
+  "page_url": "https://github.com/takanawamenntai/a/tree/3458161a348eaeaacb181b1f0e69b38f267211a2/chmate-restore-tabs/1.3.87",
+  "version": "1.3.87"
 }
